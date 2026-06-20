@@ -1,0 +1,124 @@
+// CopyFlow — esquema de datos.
+// SQLite en desarrollo; para PostgreSQL solo cambiar el datasource.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  ADMIN
+  EMPLEADO
+  PROFESOR
+  ESTUDIANTE
+}
+
+enum EstadoCartilla {
+  REVISION
+  APROBADA
+  RECHAZADA
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  PREPARANDO
+  LISTA
+  ENTREGADA
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TRANSFERENCIA
+}
+
+model Usuario {
+  id            Int      @id @default(autoincrement())
+  nombre        String
+  email         String   @unique
+  hashContrasena String
+  rol           Rol
+  creadoEn      DateTime @default(now())
+
+  cartillas     Cartilla[]
+  pedidos       Pedido[]
+  auditorias    Auditoria[]
+  sesiones      Sesion[]
+}
+
+model Curso {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @unique
+  materias Materia[]
+}
+
+model Materia {
+  id        Int        @id @default(autoincrement())
+  nombre    String
+  curso     Curso      @relation(fields: [cursoId], references: [id], onDelete: Restrict)
+  cursoId   Int
+  cartillas Cartilla[]
+}
+
+model Cartilla {
+  id            Int            @id @default(autoincrement())
+  titulo        String
+  paginas       Int
+  observaciones String?
+  archivoPdf    String
+  tamanioBytes  Int            @default(0)
+  estado        EstadoCartilla @default(REVISION)
+  profesor      Usuario        @relation(fields: [profesorId], references: [id], onDelete: Restrict)
+  profesorId    Int
+  materia       Materia        @relation(fields: [materiaId], references: [id], onDelete: Restrict)
+  materiaId     Int
+  creadoEn      DateTime       @default(now())
+
+  pedidos       Pedido[]
+}
+
+model Pedido {
+  id              Int          @id @default(autoincrement())
+  numero          String       @unique
+  cartilla        Cartilla     @relation(fields: [cartillaId], references: [id], onDelete: Restrict)
+  cartillaId      Int
+  estudiante      Usuario      @relation(fields: [estudianteId], references: [id], onDelete: Restrict)
+  estudianteId    Int
+  estado          EstadoPedido @default(PENDIENTE)
+  metodoPago      MetodoPago
+  pagoConfirmado  Boolean      @default(false)
+  comprobante     String?
+  precioCongelado Int
+  horarioRetiro   String?
+  creadoEn        DateTime     @default(now())
+}
+
+model Configuracion {
+  id              Int    @id @default(1)
+  precioPorPagina Int    @default(50)
+  alias           String @default("copyflow.escuela")
+  horario         String @default("Lunes a viernes de 8 a 18 hs")
+}
+
+model Auditoria {
+  id        Int      @id @default(autoincrement())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  usuarioId Int
+  accion    String
+  creadoEn  DateTime @default(now())
+}
+
+// Refresh tokens persistidos para permitir rotación e invalidación (logout).
+// Se guarda solo el hash del token, nunca el token en claro.
+model Sesion {
+  id           String   @id @default(uuid())
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId    Int
+  hashToken    String   @unique
+  expiraEn     DateTime
+  revocada     Boolean  @default(false)
+  creadoEn     DateTime @default(now())
+}
