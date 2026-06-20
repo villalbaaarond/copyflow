@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { usuarioDePagina } from "@/lib/servidor";
-import { rutaPorRol } from "@/componentes/Sesion";
+import { rutaPorRol } from "@/lib/rutas";
 
 export default async function Inicio() {
   const usuario = await usuarioDePagina();

@@ -1,7 +1,17 @@
 import { PrismaClient } from "@prisma/client";
 import argon2 from "argon2";
+import { mkdirSync, writeFileSync } from "fs";
+import { join } from "path";
 
 const prisma = new PrismaClient();
+
+// Escribe un PDF mínimo válido (empieza con %PDF) para los archivos demo,
+// así "Ver PDF" y "Ver comprobante" funcionan con los datos de la semilla.
+function crearPdfDemo(dir: string, nombre: string, texto: string) {
+  mkdirSync(dir, { recursive: true });
+  const contenido = `%PDF-1.4\n% CopyFlow demo: ${texto}\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n`;
+  writeFileSync(join(dir, nombre), contenido);
+}
 
 async function hash(pass: string) {
   return argon2.hash(pass, {
@@ -86,6 +96,21 @@ async function main() {
       materias[`${curso.nombre}::${nombreMateria}`] = m;
     }
   }
+
+  console.log("Creando archivos PDF demo...");
+  const dirCartillas = join(process.cwd(), "almacenamiento", "cartillas");
+  const dirComprobantes = join(process.cwd(), "almacenamiento", "comprobantes");
+  for (const f of [
+    "demo-algebra.pdf",
+    "demo-prog1.pdf",
+    "demo-bdd.pdf",
+    "demo-redes.pdf",
+    "demo-lengua.pdf",
+    "demo-estadistica.pdf",
+  ]) {
+    crearPdfDemo(dirCartillas, f, f);
+  }
+  crearPdfDemo(dirComprobantes, "demo-comprobante.pdf", "comprobante");
 
   console.log("Creando cartillas...");
   // 6 cartillas: 5 aprobadas, 1 en revisión.

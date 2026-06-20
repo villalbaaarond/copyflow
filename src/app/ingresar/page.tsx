@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { usuarioDePagina } from "@/lib/servidor";
-import { rutaPorRol } from "@/componentes/Sesion";
+import { rutaPorRol } from "@/lib/rutas";
 import { FormularioIngreso } from "./Formulario";
 
 export default async function PaginaIngreso() {

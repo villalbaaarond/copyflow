@@ -1,7 +1,6 @@
 import { exigirPagina } from "@/lib/servidor";
 import { ProveedorSesion } from "@/componentes/Sesion";
 import { Escritorio, type ItemNav } from "@/componentes/Escritorio";
-import { Upload, BookOpen } from "lucide-react";
 
 export default async function LayoutProfesor({
   children,
@@ -10,8 +9,8 @@ export default async function LayoutProfesor({
 }) {
   const usuario = await exigirPagina("PROFESOR");
   const items: ItemNav[] = [
-    { href: "/profesor", etiqueta: "Subir cartilla", icono: Upload },
-    { href: "/profesor/cartillas", etiqueta: "Mis cartillas", icono: BookOpen },
+    { href: "/profesor", etiqueta: "Subir cartilla", icono: "subir" },
+    { href: "/profesor/cartillas", etiqueta: "Mis cartillas", icono: "misCartillas" },
   ];
   return (
     <ProveedorSesion inicial={usuario}>

@@ -63,8 +63,4 @@ export function useSesion(): ContextoSesion {
   return ctx;
 }
 
-export function rutaPorRol(rol: string): string {
-  if (rol === "ADMIN" || rol === "EMPLEADO") return "/panel";
-  if (rol === "PROFESOR") return "/profesor";
-  return "/estudiante";
-}
+export { rutaPorRol } from "@/lib/rutas";

@@ -5,12 +5,34 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSesion } from "@/componentes/Sesion";
 import { Logo, Avatar } from "@/componentes/Marca";
-import { LogOut, type LucideIcon } from "lucide-react";
+import {
+  LogOut,
+  LayoutDashboard,
+  Package,
+  FileCheck,
+  Sparkles,
+  Settings,
+  Upload,
+  BookOpen,
+  type LucideIcon,
+} from "lucide-react";
+
+// Mapa de nombres a iconos: el layout (Server Component) solo pasa strings
+// serializables; el icono se resuelve acá, en el cliente.
+const ICONOS: Record<string, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  pedidos: Package,
+  cartillas: FileCheck,
+  asistente: Sparkles,
+  ajustes: Settings,
+  subir: Upload,
+  misCartillas: BookOpen,
+};
 
 export interface ItemNav {
   href: string;
   etiqueta: string;
-  icono: LucideIcon;
+  icono: string;
 }
 
 const ROL_ETIQUETA: Record<string, string> = {
@@ -44,7 +66,7 @@ export function Escritorio({
         </div>
         <nav className="flex-1 space-y-1 px-3 py-2">
           {items.map((it) => {
-            const Icono = it.icono;
+            const Icono = ICONOS[it.icono] ?? Package;
             const on = activo(it.href);
             return (
               <Link
@@ -110,7 +132,7 @@ export function Escritorio({
             onClick={(e) => e.stopPropagation()}
           >
             {items.map((it) => {
-              const Icono = it.icono;
+              const Icono = ICONOS[it.icono] ?? Package;
               const on = activo(it.href);
               return (
                 <Link

@@ -30,10 +30,13 @@ export async function GET(
     }
 
     const buf = await leerArchivo(DIR_CARTILLAS, cartilla.archivoPdf);
+    // Nombre ASCII para el header; el título completo va en filename* (RFC 5987).
+    const ascii = `cartilla-${cartilla.id}.pdf`;
+    const utf8 = encodeURIComponent(`${cartilla.titulo}.pdf`);
     return new Response(new Uint8Array(buf), {
       headers: {
         "Content-Type": tipoMime(cartilla.archivoPdf),
-        "Content-Disposition": `inline; filename="${cartilla.titulo}.pdf"`,
+        "Content-Disposition": `inline; filename="${ascii}"; filename*=UTF-8''${utf8}`,
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
       },
