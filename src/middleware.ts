@@ -4,15 +4,24 @@ import { NextResponse } from "next/server";
 export function middleware() {
   const res = NextResponse.next();
 
-  // CSP estricta. Se permite 'unsafe-inline' en estilos por Tailwind/Next y la
-  // fuente de Google; los scripts quedan acotados a 'self'.
+  // CSP. En producción queda estricta; en desarrollo se habilita lo que Next.js
+  // necesita para el modo dev (eval para HMR/React Refresh y el websocket de
+  // recarga en caliente). El 'unsafe-inline' de estilos es por Tailwind/Next.
+  const dev = process.env.NODE_ENV !== "production";
+  const scriptSrc = dev
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : "script-src 'self' 'unsafe-inline'";
+  const connectSrc = dev
+    ? "connect-src 'self' ws: wss:"
+    : "connect-src 'self'";
+
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    scriptSrc,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob:",
-    "connect-src 'self'",
+    connectSrc,
     "object-src 'self'",
     "base-uri 'self'",
     "form-action 'self'",
