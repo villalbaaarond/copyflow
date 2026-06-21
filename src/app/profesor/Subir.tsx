@@ -173,7 +173,9 @@ export function SubirCartilla() {
               disabled={!cursoId}
               required
             >
-              <option value="">Elegí una materia</option>
+              <option value="">
+                {cursoId ? "Elegí una materia" : "Primero elegí un curso"}
+              </option>
               {materias.map((m) => (
                 <option key={m.id} value={m.id}>{m.nombre}</option>
               ))}
