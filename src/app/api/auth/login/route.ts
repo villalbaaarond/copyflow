@@ -51,17 +51,30 @@ export async function POST(req: Request) {
       return credencialesInvalidas;
     }
 
+    // Una fotocopiadora dada de baja no puede operar aunque el usuario exista.
+    const fotocopiadora = await prisma.fotocopiadora.findUnique({
+      where: { id: usuario.fotocopiadoraId },
+      select: { activa: true, nombre: true },
+    });
+    if (!fotocopiadora?.activa) {
+      return NextResponse.json(
+        { error: "Esta fotocopiadora no está activa. Contactá al administrador." },
+        { status: 403 }
+      );
+    }
+
     limpiarLogin(ip);
 
     const acceso = await firmarAcceso({
       sub: String(usuario.id),
       rol: usuario.rol,
       nombre: usuario.nombre,
+      fot: usuario.fotocopiadoraId,
     });
     const refresh = await crearRefresh(usuario.id);
     await setCookieAcceso(acceso);
     await setCookieRefresh(refresh);
-    await registrarAuditoria(usuario.id, "Inició sesión");
+    await registrarAuditoria(usuario.id, usuario.fotocopiadoraId, "Inició sesión");
 
     return NextResponse.json({
       usuario: {
@@ -69,6 +82,7 @@ export async function POST(req: Request) {
         nombre: usuario.nombre,
         email: usuario.email,
         rol: usuario.rol,
+        fotocopiadora: fotocopiadora.nombre,
       },
     });
   } catch (error) {

@@ -21,9 +21,13 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     verificarOrigin(req);
-    await exigirRol("ADMIN", "EMPLEADO");
+    const usuario = await exigirRol("ADMIN", "EMPLEADO");
     const { pregunta } = esquemaPregunta.parse(await req.json());
-    const respuesta = await responderAsistente(pregunta);
+    // El asistente solo calcula sobre los datos de SU fotocopiadora.
+    const respuesta = await responderAsistente(
+      pregunta,
+      usuario.fotocopiadoraId
+    );
     return NextResponse.json({ respuesta });
   } catch (error) {
     return responderError(error);
