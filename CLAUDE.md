@@ -60,19 +60,28 @@ El precio del pedido se CONGELA al reservar (precioCongelado), para que cambiar 
 - Toda acción que modifica datos se registra en Auditoria con usuario, acción descriptiva en español, fecha y hora
 - Aislamiento multi-tenant verificado en el servidor: probar siempre el ataque cruzado (tenant A pidiendo recursos de B por id) además de los permisos por rol
 
-## Sistema de diseño (replicar el mockup de referencia/mockup.png)
+## Sistema de diseño (ultra-minimalista oscuro, estilo premium)
+Estética: negro carbón, tipografía blanco roto, mucho aire, tarjetas con bordes redondeados
+suaves, sombras realistas muy sutiles y toques de glassmorphism. El acento es un **verde
+esmeralda** (`#4CA95E`), tomado de las imágenes de referencia de la identidad. La marca y los
+saludos van en **serif** (Playfair Display): "Copy" en redonda + "Flow" en itálica. El logo son
+tres cuadrados redondeados superpuestos (hojas apiladas) en verde.
+El MISMO estilo aplica a escritorio y a móvil: no hay dos identidades.
+
 Tokens:
-- Fondo `#FAFAFA`, tarjetas `#FFFFFF`, texto `#18181B`, secundario `#52525B`, terciario `#A1A1AA`, bordes `#E4E4E7` y `#EFEFF1`
-- Marca índigo `#5B5BD6` (hover `#4A4AC6`, tinte `#EFEFFC`, ring `rgba(91,91,214,.22)`)
-- Estados: Pendiente ámbar (`#B45309`/`#FEF6E7`/borde `#F3E2C0`), Preparando azul (`#2563EB`/`#EDF3FE`), Lista verde (`#15803D`/`#EBF7EF`), Entregada gris (`#52525B`/`#F4F4F5`), Rechazada rojo (`#DC2626`/`#FDEEEE`). Chips con punto de color, fondo tintado Y borde tonal.
-- Tipografía: Inter variable (tracking -0.025em en títulos, números tabulares en métricas); JetBrains Mono para números de pedido y montos
-- Radios 10–14px, sombras en capas suaves (`0 1px 2px rgba(16,17,20,.05)` + difusa), botón primario negro con highlight interior, botón de acento con gradiente índigo vertical
+- Fondo `#101416`, superficie `#15191C`, tarjetas `#1A1F22` (con blur de vidrio), vidrio `rgba(255,255,255,.035)`
+- Texto blanco roto `#F2F4F3`, secundario `#9BA1A4`, terciario `#6B7276`, bordes `#252B2D` y `#1E2426`
+- Acento verde `#4CA95E` (hover `#5CBB6E`, fuerte `#3E8B4D`, tinte `rgba(76,169,94,.12)`, ring `rgba(76,169,94,.22)`)
+- Estados como tintes translúcidos (texto vivo + fondo al 10% + borde al 22%): Pendiente `#E0B270`,
+  Preparando `#84AEDC`, Lista/Aprobada `#6DC47F` (verde de marca), Entregada `#9AA0A6`, Rechazada `#E08C8C`. Chips con punto de color.
+- Tipografía: Inter para interfaz; **Playfair Display** (clase `.display`) para logo y saludos; JetBrains Mono para números de pedido y montos; números tabulares en métricas
+- Radios 10–18px; sombras `0 1px 2px rgba(0,0,0,.4)` + difusa; botón primario y de acento en verde esmeralda con texto oscuro y highlight interior; botón secundario de vidrio con borde
 - Iconografía: lucide-react (trazo 2, nunca emojis)
 
-Layout según mockup:
-- **Escritorio (fotocopiadora/profesor)**: sidebar fija izquierda con logo arriba, navegación con ítem activo en píldora índigo, usuario abajo; área principal con saludo, tarjetas de estadísticas con tendencia "↑ 12% vs ayer" y mini-gráfico de área, tabla "Pedidos Recientes" con chips de estado, y panel del Asistente IA a la derecha con chips de preguntas sugeridas y campo de entrada
+Layout:
+- **Escritorio (fotocopiadora/profesor)**: sidebar fija izquierda con logo arriba, ítem activo en píldora verde, usuario abajo; área principal con saludo, tarjetas de estadísticas con mini-gráfico de área, tabla de pedidos recientes con chips de estado, y asistente IA
 - **Profesor**: dropzone "Arrastrá tu PDF acá o hacé clic para seleccionar (PDF máximo 50MB)", lista de cartillas con icono, tamaño, páginas y chip de estado
-- **Móvil (estudiante)**: saludo + buscador, fila de materias como chips circulares con icono, tarjetas de cartillas con profesor, páginas, precio y botón "Reservar" índigo, bottom navigation (Inicio, Mis Pedidos, Historial, Perfil)
+- **Móvil (estudiante)**: saludo + buscador, fila de materias como chips circulares con icono, tarjetas de cartillas con profesor, páginas, precio y botón "Reservar", bottom navigation (Inicio, Mis Pedidos, Historial, Perfil)
 - Responsive perfecto en 320/375/390/430px: sidebar colapsa a bottom nav, sin overflow horizontal, sin texto cortado
 
 ## Imágenes y recursos visuales

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900&family=JetBrains+Mono:wght@400..700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900&family=JetBrains+Mono:wght@400..700&family=Playfair+Display:ital,wght@0,500..700;1,500..700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -7,14 +7,28 @@
 :root {
   --font-inter: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-serif: "Playfair Display", Georgia, serif;
+  color-scheme: dark;
 }
 
 html,
 body {
-  background: #fafafa;
-  color: #18181b;
+  background: #101416;
+  color: #f2f4f3;
   font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Halo muy tenue de acento: da profundidad sin ensuciar el negro. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(60rem 40rem at 12% -10%, rgba(76, 169, 94, 0.07), transparent 60%),
+    radial-gradient(50rem 36rem at 100% 0%, rgba(76, 169, 94, 0.05), transparent 55%);
 }
 
 * {
@@ -23,62 +37,89 @@ body {
 
 @layer base {
   h1 {
-    letter-spacing: -0.025em;
+    letter-spacing: -0.03em;
   }
   h2,
   h3 {
     letter-spacing: -0.02em;
   }
+  ::selection {
+    background: rgba(76, 169, 94, 0.30);
+  }
 }
 
 @layer components {
-  /* Botón primario negro con highlight interior superior. */
+  /* Acción principal: verde sabio sobre texto oscuro, con highlight interior. */
   .btn-primario {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-texto px-4 py-2.5 text-sm font-semibold text-white transition-colors;
+    @apply inline-flex items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-sm font-semibold transition-colors;
+    background: #4ca95e;
+    color: #0c1210;
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      0 1px 2px rgba(16, 17, 20, 0.18);
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      0 1px 2px rgba(0, 0, 0, 0.4);
   }
   .btn-primario:hover {
-    background: #27272a;
+    background: #5cbb6e;
   }
   .btn-primario:disabled {
-    @apply cursor-not-allowed opacity-50;
+    @apply cursor-not-allowed opacity-45;
   }
 
-  /* Botón de acento con gradiente índigo vertical. */
+  /* Acento con gradiente sabio vertical. */
   .btn-acento {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-sm font-semibold text-white transition-opacity;
-    background: linear-gradient(180deg, #6d6de0 0%, #5b5bd6 60%, #4a4ac6 100%);
+    @apply inline-flex items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-sm font-semibold transition-opacity;
+    background: linear-gradient(180deg, #5cbb6e 0%, #4ca95e 58%, #3e8b4d 100%);
+    color: #0c1210;
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.2),
-      0 1px 2px rgba(74, 74, 198, 0.3);
+      inset 0 1px 0 rgba(255, 255, 255, 0.24),
+      0 1px 2px rgba(0, 0, 0, 0.42);
   }
   .btn-acento:hover {
-    opacity: 0.94;
+    opacity: 0.92;
   }
   .btn-acento:disabled {
-    @apply cursor-not-allowed opacity-50;
+    @apply cursor-not-allowed opacity-45;
   }
 
+  /* Secundario: vidrio sutil sobre el fondo oscuro. */
   .btn-secundario {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm border border-borde bg-white px-4 py-2.5 text-sm font-semibold text-texto transition-colors hover:bg-fondo;
+    @apply inline-flex items-center justify-center gap-2 rounded-sm border border-borde px-4 py-2.5 text-sm font-semibold text-texto transition-colors;
+    background: rgba(255, 255, 255, 0.035);
+  }
+  .btn-secundario:hover {
+    background: rgba(255, 255, 255, 0.07);
   }
 
+  /* Tarjeta con glassmorphism suave. */
   .tarjeta {
-    @apply rounded-md border border-bordeSuave bg-white shadow-tarjeta;
+    @apply relative rounded-md border border-bordeSuave shadow-tarjeta;
+    background: rgba(26, 31, 34, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
 
   .campo {
-    @apply w-full rounded-sm border border-borde bg-white px-3.5 py-2.5 text-sm text-texto outline-none transition-shadow placeholder:text-terciario;
+    @apply w-full rounded-sm border border-borde px-3.5 py-2.5 text-sm text-texto outline-none transition-shadow placeholder:text-terciario;
+    background: rgba(255, 255, 255, 0.03);
   }
   .campo:focus {
-    border-color: #5b5bd6;
-    box-shadow: 0 0 0 3px rgba(91, 91, 214, 0.22);
+    border-color: #4ca95e;
+    box-shadow: 0 0 0 3px rgba(76, 169, 94, 0.22);
+  }
+  .campo option {
+    background: #1a1f22;
+    color: #f2f4f3;
   }
 
   .etiqueta {
     @apply mb-1.5 block text-[12.5px] font-semibold text-secundario;
+  }
+
+  /* Saludos y titulos destacados en serif, como en la referencia. */
+  .display {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   .mono {
@@ -92,10 +133,13 @@ body {
   width: 10px;
   height: 10px;
 }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 ::-webkit-scrollbar-thumb {
-  background: #e4e4e7;
+  background: #252b2d;
   border-radius: 999px;
-  border: 3px solid #fafafa;
+  border: 3px solid #101416;
 }
 
 @keyframes skeleton {
@@ -107,7 +151,7 @@ body {
   }
 }
 .skeleton {
-  background: linear-gradient(90deg, #f1f1f3 25%, #e8e8ec 37%, #f1f1f3 63%);
+  background: linear-gradient(90deg, #171c1f 25%, #202629 37%, #171c1f 63%);
   background-size: 200% 100%;
   animation: skeleton 1.4s ease-in-out infinite;
 }

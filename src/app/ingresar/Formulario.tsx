@@ -52,7 +52,7 @@ export function FormularioIngreso() {
         </div>
 
         <div className="tarjeta p-6 sm:p-7">
-          <h1 className="text-xl font-bold tracking-[-0.025em] text-texto">
+          <h1 className="display text-[25px] text-texto">
             Iniciá sesión
           </h1>
           <p className="mt-1 text-sm text-secundario">
@@ -110,7 +110,7 @@ export function FormularioIngreso() {
           </Link>
         </p>
 
-        <div className="mt-5 rounded-md border border-bordeSuave bg-white p-4">
+        <div className="mt-5 rounded-md border border-bordeSuave bg-vidrio p-4">
           <p className="text-[12.5px] font-semibold text-secundario">
             Cuentas demo (contraseña: demo1234)
           </p>

@@ -59,10 +59,10 @@ export function Escritorio({
   return (
     <div className="flex min-h-screen bg-fondo">
       {/* Sidebar de escritorio */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-bordeSuave bg-white lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-bordeSuave bg-tarjeta lg:flex">
         <div className="flex items-center gap-2.5 px-5 py-5">
           <Logo tamano={30} />
-          <span className="text-[16px] font-bold tracking-[-0.03em]">CopyFlow</span>
+          <span className="display text-[19px] text-texto">Copy<span className="italic">Flow</span></span>
         </div>
         <nav className="flex-1 space-y-1 px-3 py-2">
           {items.map((it) => {
@@ -74,8 +74,8 @@ export function Escritorio({
                 href={it.href}
                 className={`flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm font-medium transition-colors ${
                   on
-                    ? "bg-marca text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]"
-                    : "text-secundario hover:bg-fondo hover:text-texto"
+                    ? "bg-marca text-fondo shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]"
+                    : "text-secundario hover:bg-vidrio hover:text-texto"
                 }`}
               >
                 <Icono size={18} strokeWidth={2} />
@@ -97,7 +97,7 @@ export function Escritorio({
             </div>
             <button
               onClick={cerrarSesion}
-              className="rounded-sm p-1.5 text-terciario hover:bg-fondo hover:text-texto"
+              className="rounded-sm p-1.5 text-terciario hover:bg-vidrio hover:text-texto"
               aria-label="Cerrar sesión"
               title="Cerrar sesión"
             >
@@ -108,10 +108,10 @@ export function Escritorio({
       </aside>
 
       {/* Barra superior móvil */}
-      <header className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-bordeSuave bg-white px-4 py-3 lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-bordeSuave bg-tarjeta px-4 py-3 lg:hidden">
         <div className="flex items-center gap-2">
           <Logo tamano={26} />
-          <span className="text-[15px] font-bold tracking-[-0.03em]">CopyFlow</span>
+          <span className="display text-[17px] text-texto">Copy<span className="italic">Flow</span></span>
         </div>
         <button
           onClick={() => setMenuMovil((v) => !v)}
@@ -124,11 +124,11 @@ export function Escritorio({
       {/* Menú desplegable móvil */}
       {menuMovil && (
         <div
-          className="fixed inset-0 top-[53px] z-20 bg-black/20 lg:hidden"
+          className="fixed inset-0 top-[53px] z-20 bg-black/60 lg:hidden"
           onClick={() => setMenuMovil(false)}
         >
           <nav
-            className="space-y-1 border-b border-bordeSuave bg-white px-3 py-3"
+            className="space-y-1 border-b border-bordeSuave bg-tarjeta px-3 py-3"
             onClick={(e) => e.stopPropagation()}
           >
             {items.map((it) => {
@@ -140,7 +140,7 @@ export function Escritorio({
                   href={it.href}
                   onClick={() => setMenuMovil(false)}
                   className={`flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm font-medium ${
-                    on ? "bg-marca text-white" : "text-secundario"
+                    on ? "bg-marca text-fondo" : "text-secundario"
                   }`}
                 >
                   <Icono size={18} strokeWidth={2} />
@@ -172,15 +172,24 @@ export function Encabezado({
   titulo,
   subtitulo,
   accion,
+  display,
 }: {
   titulo: string;
   subtitulo?: string;
   accion?: React.ReactNode;
+  // Los saludos van en serif; los titulos de seccion, en sans.
+  display?: boolean;
 }) {
   return (
     <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-[22px] font-bold tracking-[-0.025em] text-texto">
+        <h1
+          className={
+            display
+              ? "display text-[27px] text-texto"
+              : "text-[22px] font-bold tracking-[-0.025em] text-texto"
+          }
+        >
           {titulo}
         </h1>
         {subtitulo && <p className="mt-1 text-sm text-secundario">{subtitulo}</p>}

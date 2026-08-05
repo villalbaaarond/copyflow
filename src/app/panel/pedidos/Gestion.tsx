@@ -84,7 +84,7 @@ export function GestionPedidos() {
             className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               filtro === f.valor
                 ? "border-marca bg-marca-tinte text-marca"
-                : "border-borde bg-white text-secundario hover:bg-fondo"
+                : "border-borde bg-vidrio text-secundario hover:bg-vidrio"
             }`}
           >
             {f.etiqueta}
@@ -192,7 +192,7 @@ export function GestionPedidos() {
                   {esAdmin && (
                     <button
                       onClick={() => setCorreccion(p)}
-                      className="ml-auto inline-flex items-center gap-1.5 rounded-sm px-2.5 py-2 text-sm font-medium text-secundario hover:bg-fondo hover:text-texto"
+                      className="ml-auto inline-flex items-center gap-1.5 rounded-sm px-2.5 py-2 text-sm font-medium text-secundario hover:bg-vidrio hover:text-texto"
                     >
                       <Wrench size={14} strokeWidth={2} />
                       Corrección

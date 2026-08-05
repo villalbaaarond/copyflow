@@ -54,7 +54,7 @@ export function InicioEstudiante() {
       <div className="mb-5 flex items-center justify-between">
         <div>
           <p className="text-sm text-secundario">Hola,</p>
-          <h1 className="text-xl font-bold tracking-[-0.025em] text-texto">
+          <h1 className="display text-[26px] text-texto">
             {usuario?.nombre?.split(" ")[0]}
           </h1>
         </div>
@@ -100,8 +100,8 @@ export function InicioEstudiante() {
                   <span
                     className={`flex h-14 w-14 items-center justify-center rounded-full border transition-colors ${
                       materiaId === m.id
-                        ? "border-marca bg-marca text-white"
-                        : "border-borde bg-white text-marca"
+                        ? "border-marca bg-marca text-fondo"
+                        : "border-borde bg-vidrio text-marca"
                     }`}
                   >
                     <Icono size={22} strokeWidth={2} />
@@ -185,7 +185,7 @@ function ChipMateria({ activo, onClick, etiqueta }: { activo: boolean; onClick: 
     <button onClick={onClick} className="flex shrink-0 flex-col items-center gap-1.5">
       <span
         className={`flex h-14 w-14 items-center justify-center rounded-full border text-xs font-semibold transition-colors ${
-          activo ? "border-marca bg-marca text-white" : "border-borde bg-white text-secundario"
+          activo ? "border-marca bg-marca text-fondo" : "border-borde bg-vidrio text-secundario"
         }`}
       >
         Todas
@@ -269,7 +269,7 @@ function ModalReserva({ cartilla, onCerrar }: { cartilla: Cartilla; onCerrar: ()
                 key={m}
                 onClick={() => setMetodo(m)}
                 className={`rounded-sm border px-3 py-2.5 text-sm font-semibold transition-colors ${
-                  metodo === m ? "border-marca bg-marca-tinte text-marca" : "border-borde bg-white text-secundario"
+                  metodo === m ? "border-marca bg-marca-tinte text-marca" : "border-borde bg-vidrio text-secundario"
                 }`}
               >
                 {m === "EFECTIVO" ? "Efectivo" : "Transferencia"}

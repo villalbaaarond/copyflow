@@ -16,10 +16,10 @@ export function EstadoVacio({
   return (
     <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
       <svg width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden>
-        <rect x="14" y="10" width="44" height="52" rx="8" stroke="#C7C7D6" strokeWidth="2.5" />
-        <path d="M24 26h24M24 36h24M24 46h14" stroke="#C7C7D6" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="52" cy="52" r="13" fill="#EFEFFC" stroke="#5B5BD6" strokeWidth="2.5" />
-        <path d="M52 47v10M47 52h10" stroke="#5B5BD6" strokeWidth="2.5" strokeLinecap="round" />
+        <rect x="14" y="10" width="44" height="52" rx="8" stroke="#3A3F44" strokeWidth="2.5" />
+        <path d="M24 26h24M24 36h24M24 46h14" stroke="#3A3F44" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="52" cy="52" r="13" fill="rgba(76,169,94,0.12)" stroke="#4CA95E" strokeWidth="2.5" />
+        <path d="M52 47v10M47 52h10" stroke="#4CA95E" strokeWidth="2.5" strokeLinecap="round" />
       </svg>
       <h3 className="mt-4 text-[15px] font-semibold text-texto">{titulo}</h3>
       {descripcion && (
@@ -63,11 +63,11 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-[1px] sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-[3px] sm:items-center"
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-md rounded-t-2xl bg-white shadow-elevada sm:rounded-lg"
+        className="w-full max-w-md rounded-t-2xl border border-borde bg-tarjeta shadow-elevada sm:rounded-lg"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -77,7 +77,7 @@ export function Modal({
           <h2 className="text-[15px] font-semibold text-texto">{titulo}</h2>
           <button
             onClick={onCerrar}
-            className="rounded-sm p-1 text-terciario hover:bg-fondo hover:text-texto"
+            className="rounded-sm p-1 text-terciario hover:bg-vidrio hover:text-texto"
             aria-label="Cerrar"
           >
             <X size={18} strokeWidth={2} />
@@ -98,9 +98,9 @@ export function Aviso({
   children: React.ReactNode;
 }) {
   const estilos = {
-    ok: "bg-estado-listaBg text-estado-listaText border-[#CFEBD9]",
-    error: "bg-estado-rechazadaBg text-estado-rechazadaText border-[#F7D4D4]",
-    info: "bg-marca-tinte text-marca border-[#DcDcF7]",
+    ok: "bg-estado-listaBg text-estado-listaText border-estado-listaBorde",
+    error: "bg-estado-rechazadaBg text-estado-rechazadaText border-estado-rechazadaBorde",
+    info: "bg-marca-tinte text-marca border-[rgba(76,169,94,0.30)]",
   }[tipo];
   return (
     <div className={`rounded-sm border px-3.5 py-2.5 text-sm font-medium ${estilos}`}>

@@ -16,7 +16,7 @@ export function MovilEstudiante({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-fondo">
       <main className="mx-auto max-w-md px-4 pb-24 pt-5">{children}</main>
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-bordeSuave bg-white/95 backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-bordeSuave bg-superficie/85 backdrop-blur">
         <div className="mx-auto flex max-w-md items-stretch justify-around">
           {ITEMS.map((it) => {
             const Icono = it.icono;

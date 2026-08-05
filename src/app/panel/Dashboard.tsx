@@ -50,12 +50,12 @@ function MiniArea({ serie }: { serie: { conteo: number }[] }) {
     <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} className="overflow-visible">
       <defs>
         <linearGradient id="cf-area" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#5B5BD6" stopOpacity="0.22" />
-          <stop offset="1" stopColor="#5B5BD6" stopOpacity="0" />
+          <stop offset="0" stopColor="#4CA95E" stopOpacity="0.22" />
+          <stop offset="1" stopColor="#4CA95E" stopOpacity="0" />
         </linearGradient>
       </defs>
       <polyline points={area} fill="url(#cf-area)" stroke="none" />
-      <polyline points={linea} fill="none" stroke="#5B5BD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={linea} fill="none" stroke="#4CA95E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -121,6 +121,7 @@ export function Dashboard() {
     <>
       <Encabezado
         titulo={`${saludo}, ${usuario?.nombre?.split(" ")[0] ?? ""}`}
+        display
         subtitulo="Este es el resumen de la fotocopiadora."
       />
 

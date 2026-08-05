@@ -9,7 +9,7 @@ export function PerfilEstudiante() {
 
   return (
     <>
-      <h1 className="mb-5 text-xl font-bold tracking-[-0.025em] text-texto">Perfil</h1>
+      <h1 className="display mb-5 text-[24px] text-texto">Perfil</h1>
 
       <div className="tarjeta flex flex-col items-center p-6">
         <Avatar nombre={usuario?.nombre ?? "?"} tamano={64} />

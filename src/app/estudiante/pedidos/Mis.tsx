@@ -41,7 +41,7 @@ export function MisPedidos({ activos }: { activos: boolean }) {
 
   return (
     <>
-      <h1 className="mb-5 text-xl font-bold tracking-[-0.025em] text-texto">
+      <h1 className="display mb-5 text-[24px] text-texto">
         {activos ? "Mis Pedidos" : "Historial"}
       </h1>
 
@@ -123,7 +123,7 @@ function LineaProgreso({ estado }: { estado: EstadoPedido }) {
           <div key={paso} className="flex flex-1 items-center last:flex-none">
             <span
               className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
-                i <= idx ? "bg-marca text-white" : "bg-bordeSuave text-terciario"
+                i <= idx ? "bg-marca text-fondo" : "bg-bordeSuave text-terciario"
               }`}
             >
               {i + 1}
