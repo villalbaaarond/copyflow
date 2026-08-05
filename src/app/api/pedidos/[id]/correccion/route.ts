@@ -34,7 +34,9 @@ export async function POST(
       throw new ErrorHttp(400, "Indicá al menos un cambio a corregir.");
     }
 
-    const pedido = await prisma.pedido.findUnique({ where: { id: pedidoId } });
+    const pedido = await prisma.pedido.findFirst({
+      where: { id: pedidoId, fotocopiadoraId: usuario.fotocopiadoraId },
+    });
     if (!pedido) throw new ErrorHttp(404, "El pedido no existe.");
 
     const cambios: string[] = [];
@@ -67,6 +69,7 @@ export async function POST(
       const p = await tx.pedido.update({ where: { id: pedidoId }, data });
       await registrarAuditoria(
         usuario.id,
+        usuario.fotocopiadoraId,
         `Corrección de emergencia en ${pedido.numero}: ${cambios.join("; ")}. Motivo: ${datos.motivo}`,
         tx
       );
