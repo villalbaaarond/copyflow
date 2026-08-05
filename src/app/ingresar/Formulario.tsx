@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { enviar, ErrorApi } from "@/lib/cliente";
 import { rutaPorRol } from "@/componentes/Sesion";
@@ -98,6 +99,16 @@ export function FormularioIngreso() {
             </button>
           </form>
         </div>
+
+        <p className="mt-5 text-center text-sm text-secundario">
+          ¿No tenés cuenta?{" "}
+          <Link
+            href="/registro"
+            className="font-semibold text-marca hover:text-marca-hover"
+          >
+            Registrate acá
+          </Link>
+        </p>
 
         <div className="mt-5 rounded-md border border-bordeSuave bg-white p-4">
           <p className="text-[12.5px] font-semibold text-secundario">
