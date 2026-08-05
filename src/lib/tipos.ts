@@ -9,6 +9,26 @@ export interface Usuario {
   email: string;
   rol: Rol;
   creadoEn?: string;
+  // Tenant al que pertenece (SaaS multi-fotocopiadora).
+  fotocopiadoraId?: number;
+  fotocopiadoraNombre?: string;
+}
+
+export interface Fotocopiadora {
+  id: number;
+  nombre: string;
+  slug: string;
+  dominioDocente: string | null;
+}
+
+export interface PinProfesor {
+  id: number;
+  codigo: string;
+  etiqueta: string | null;
+  usado: boolean;
+  expiraEn: string;
+  creadoEn: string;
+  usadoPor?: { nombre: string; email: string } | null;
 }
 
 export interface Curso {
