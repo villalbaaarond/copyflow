@@ -8,23 +8,29 @@ function inicioSemana(): Date {
   return d;
 }
 
-// GET: estadísticas del dashboard. Solo fotocopiadora (admin/empleado).
+// GET: estadísticas del dashboard, calculadas SOLO sobre la fotocopiadora
+// del usuario. Ningún número mezcla datos de otro tenant.
 export async function GET() {
   try {
-    await exigirRol("ADMIN", "EMPLEADO");
+    const usuario = await exigirRol("ADMIN", "EMPLEADO");
+    const fotocopiadoraId = usuario.fotocopiadoraId;
     const desde = inicioSemana();
 
     const [pendientes, preparando, listas, entregadasSemana, enRevision, total] =
       await Promise.all([
-        prisma.pedido.count({ where: { estado: "PENDIENTE" } }),
-        prisma.pedido.count({ where: { estado: "PREPARANDO" } }),
-        prisma.pedido.count({ where: { estado: "LISTA" } }),
+        prisma.pedido.count({ where: { fotocopiadoraId, estado: "PENDIENTE" } }),
+        prisma.pedido.count({ where: { fotocopiadoraId, estado: "PREPARANDO" } }),
+        prisma.pedido.count({ where: { fotocopiadoraId, estado: "LISTA" } }),
         prisma.pedido.findMany({
-          where: { estado: "ENTREGADA", creadoEn: { gte: desde } },
+          where: {
+            fotocopiadoraId,
+            estado: "ENTREGADA",
+            creadoEn: { gte: desde },
+          },
           select: { precioCongelado: true },
         }),
-        prisma.cartilla.count({ where: { estado: "REVISION" } }),
-        prisma.pedido.count(),
+        prisma.cartilla.count({ where: { fotocopiadoraId, estado: "REVISION" } }),
+        prisma.pedido.count({ where: { fotocopiadoraId } }),
       ]);
 
     const ingresosSemana = entregadasSemana.reduce(
@@ -34,7 +40,7 @@ export async function GET() {
 
     // Serie de pedidos por día (últimos 7) para el mini-gráfico de área.
     const pedidos7 = await prisma.pedido.findMany({
-      where: { creadoEn: { gte: desde } },
+      where: { fotocopiadoraId, creadoEn: { gte: desde } },
       select: { creadoEn: true },
     });
     const serie = Array.from({ length: 7 }, (_, i) => {
@@ -48,6 +54,7 @@ export async function GET() {
     });
 
     const recientes = await prisma.pedido.findMany({
+      where: { fotocopiadoraId },
       include: {
         cartilla: { select: { titulo: true } },
         estudiante: { select: { nombre: true } },

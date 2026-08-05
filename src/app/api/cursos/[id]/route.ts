@@ -16,7 +16,7 @@ async function obtenerId(params: Promise<{ id: string }>) {
   return n;
 }
 
-// PATCH: el admin renombra un curso.
+// PATCH: el dueño renombra un curso de SU fotocopiadora.
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -27,12 +27,22 @@ export async function PATCH(
     const id = await obtenerId(params);
     const datos = esquemaCurso.parse(await req.json());
 
+    const propio = await prisma.curso.findFirst({
+      where: { id, fotocopiadoraId: usuario.fotocopiadoraId },
+    });
+    if (!propio) throw new ErrorHttp(404, "El curso no existe.");
+
     const curso = await prisma.$transaction(async (tx) => {
       const c = await tx.curso.update({
         where: { id },
         data: { nombre: datos.nombre },
       });
-      await registrarAuditoria(usuario.id, `Renombró un curso a "${c.nombre}"`, tx);
+      await registrarAuditoria(
+        usuario.id,
+        usuario.fotocopiadoraId,
+        `Renombró un curso a "${c.nombre}"`,
+        tx
+      );
       return c;
     });
     return NextResponse.json({ curso });
@@ -41,7 +51,7 @@ export async function PATCH(
   }
 }
 
-// DELETE: el admin borra un curso. Bloqueado si tiene materias con cartillas.
+// DELETE: el dueño borra un curso propio. Bloqueado si tiene materias con cartillas.
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -51,8 +61,8 @@ export async function DELETE(
     const usuario = await exigirRol("ADMIN");
     const id = await obtenerId(params);
 
-    const curso = await prisma.curso.findUnique({
-      where: { id },
+    const curso = await prisma.curso.findFirst({
+      where: { id, fotocopiadoraId: usuario.fotocopiadoraId },
       include: { materias: { include: { _count: { select: { cartillas: true } } } } },
     });
     if (!curso) throw new ErrorHttp(404, "El curso no existe.");
@@ -70,6 +80,7 @@ export async function DELETE(
       await tx.curso.delete({ where: { id } });
       await registrarAuditoria(
         usuario.id,
+        usuario.fotocopiadoraId,
         `Borró el curso "${curso.nombre}"`,
         tx
       );

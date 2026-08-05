@@ -16,8 +16,8 @@ async function obtenerId(params: Promise<{ id: string }>): Promise<number> {
   return n;
 }
 
-// PATCH: editar una cartilla. admin cualquiera; profesor solo las propias.
-// Al editar, vuelve a REVISION (corrección de su estado).
+// PATCH: editar una cartilla. admin cualquiera de su fotocopiadora;
+// profesor solo las propias. Al editar, vuelve a REVISION.
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -30,7 +30,11 @@ export async function PATCH(
     }
     const id = await obtenerId(params);
 
-    const cartilla = await prisma.cartilla.findUnique({ where: { id } });
+    // findFirst con el tenant en el where: una cartilla de otra fotocopiadora
+    // simplemente "no existe" para este usuario.
+    const cartilla = await prisma.cartilla.findFirst({
+      where: { id, fotocopiadoraId: usuario.fotocopiadoraId },
+    });
     if (!cartilla) throw new ErrorHttp(404, "La cartilla no existe.");
 
     if (usuario.rol === "PROFESOR" && cartilla.profesorId !== usuario.id) {
@@ -40,8 +44,11 @@ export async function PATCH(
     const datos = esquemaEditarCartilla.parse(await req.json());
 
     if (datos.materiaId) {
-      const materia = await prisma.materia.findUnique({
-        where: { id: datos.materiaId },
+      const materia = await prisma.materia.findFirst({
+        where: {
+          id: datos.materiaId,
+          fotocopiadoraId: usuario.fotocopiadoraId,
+        },
       });
       if (!materia) throw new ErrorHttp(400, "La materia no existe.");
     }
@@ -61,6 +68,7 @@ export async function PATCH(
       });
       await registrarAuditoria(
         usuario.id,
+        usuario.fotocopiadoraId,
         `Editó la cartilla "${c.titulo}" y volvió a revisión`,
         tx
       );
