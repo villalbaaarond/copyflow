@@ -9,6 +9,34 @@ export const esquemaRegistro = z.object({
   nombre: z.string().min(2, "El nombre es muy corto.").max(80),
   email: z.string().email("Ingresá un email válido."),
   contrasena: z.string().min(8, "La contraseña debe tener al menos 8 caracteres."),
+  // Fotocopiadora a la que se registra (identificador corto que le dan al usuario).
+  fotocopiadora: z.string().min(1, "Indicá la fotocopiadora.").max(60),
+  // Filtro 2: PIN de 4 dígitos que entrega el dueño para habilitar al profesor.
+  pin: z
+    .string()
+    .regex(/^[0-9]{4}$/, "El PIN son 4 números.")
+    .optional()
+    .or(z.literal("")),
+});
+
+// Generación de PINes de profesor (solo el dueño de la fotocopiadora).
+export const esquemaPin = z.object({
+  etiqueta: z.string().max(80).optional().or(z.literal("")),
+  diasValidez: z.coerce.number().int().min(1).max(90).default(7),
+});
+
+// Ajustes del tenant que administra el dueño.
+export const esquemaFotocopiadora = z.object({
+  nombre: z.string().min(2).max(80),
+  dominioDocente: z
+    .string()
+    .max(120)
+    .regex(
+      /^$|^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      "Poné un dominio válido, por ejemplo colegio.edu.ar"
+    )
+    .optional()
+    .or(z.literal("")),
 });
 
 export const esquemaCartilla = z.object({
@@ -51,6 +79,8 @@ export const esquemaCurso = z.object({
 
 export const esquemaMateria = z.object({
   nombre: z.string().min(1, "Poné un nombre.").max(60),
+  // División opcional para organizar por sección (ej: "3ro A").
+  division: z.string().max(20).optional().or(z.literal("")),
   cursoId: z.coerce.number().int().positive("Elegí un curso."),
 });
 
