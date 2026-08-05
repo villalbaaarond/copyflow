@@ -1,6 +1,24 @@
 # CopyFlow
 
-Plataforma para fotocopiadoras escolares: los profesores suben cartillas (PDF), la fotocopiadora las aprueba, los estudiantes las reservan y pagan, y la fotocopiadora gestiona los pedidos por estados. **Una sola web, una base de datos, una autenticación**; lo único que cambia por rol son los permisos y las vistas.
+Plataforma **SaaS multi-fotocopiadora** para gestión de cartillas escolares. Cada fotocopiadora suscripta opera **completamente aislada** dentro de la misma aplicación: los profesores suben cartillas (PDF), la fotocopiadora las aprueba, los estudiantes las reservan y pagan, y la fotocopiadora gestiona los pedidos por estados.
+
+## Multi-tenancy (aislamiento entre fotocopiadoras)
+
+Toda tabla de negocio lleva `fotocopiadoraId` y **ninguna fotocopiadora puede ver ni tocar datos de otra**:
+
+- El tenant viaja **dentro del JWT firmado**; nunca se acepta del cliente.
+- Las búsquedas por id usan `findFirst({ where: { id, fotocopiadoraId } })`, así un recurso de otro tenant responde **404** (ni siquiera se confirma que existe).
+- La numeración de pedidos `P-0001` es **por fotocopiadora**, no global.
+- Cada fotocopiadora tiene su propio precio por página, alias y horario.
+
+## Registro con filtro anti-fraude docente
+
+Cualquiera se registra en `/registro` con el **código** de su fotocopiadora. Para obtener el rol de **profesor** hacen falta **dos filtros**, verificados en el servidor:
+
+1. **Dominio institucional** — el email debe pertenecer al dominio docente que configuró esa fotocopiadora.
+2. **PIN de 4 dígitos** — lo genera el dueño desde *Ajustes → PINes docentes*. Es de **un solo uso**, **vence** y pertenece a **esa** fotocopiadora.
+
+Si falta cualquiera de los dos, la cuenta se crea como **estudiante**. Como un PIN de 4 dígitos tiene poca entropía, la defensa real es el **rate limiting** (5 intentos por IP con bloqueo creciente), el uso único y el vencimiento.
 
 ## Stack
 
@@ -29,16 +47,28 @@ npm run build && npm start
 
 ## Cuentas demo
 
-Todas con contraseña **`demo1234`**. En la pantalla de ingreso hay botones para autocompletarlas.
+La semilla crea **dos fotocopiadoras** para poder comprobar el aislamiento. Todas las cuentas usan la contraseña **`demo1234`**.
+
+**Fotocopiadora Central** (código `central`, dominio docente `escuela.edu`)
 
 | Rol | Email | Qué ve |
 |---|---|---|
-| Admin | `marta@copyflow.app` | Todo: dashboard, pedidos, cartillas, asistente, ajustes y correcciones de emergencia |
+| Admin | `marta@copyflow.app` | Todo: dashboard, pedidos, cartillas, asistente, ajustes, PINes y correcciones |
 | Empleado | `diego@copyflow.app` | Dashboard, pedidos, cartillas y asistente (sin ajustes ni correcciones) |
 | Profesor | `gomez@escuela.edu` | Subir cartillas y ver/editar las propias |
-| Profesor | `rios@escuela.edu` | Ídem |
 | Estudiante | `lucia@mail.com` | Reservar cartillas y ver solo sus pedidos |
-| Estudiante | `mateo@mail.com` | Ídem |
+
+**Copias del Norte** (código `norte`, dominio docente `institutonorte.edu.ar`, $70/pág)
+
+| Rol | Email |
+|---|---|
+| Admin | `ana@norte.app` |
+| Profesor | `molina@institutonorte.edu.ar` |
+| Estudiante | `sofia@mail.com` |
+
+PINes docentes de prueba: **central** `7390` · **norte** `1234`. Entrando con `marta@copyflow.app` en *Ajustes → PINes docentes* podés generar más.
+
+> Probá el aislamiento: entrá como `marta@copyflow.app` y fijate que no existe ningún dato de Copias del Norte, y viceversa.
 
 ## El flujo central
 
@@ -63,6 +93,7 @@ src/
     api/             # route handlers (auth, cartillas, pedidos, cursos, materias,
                      # usuarios, configuracion, auditoria, estadisticas, asistente)
     ingresar/        # login
+    registro/        # alta de cuenta con filtro anti-fraude docente
     panel/           # fotocopiadora (dashboard, pedidos, cartillas, asistente, ajustes)
     profesor/        # subir cartilla, mis cartillas
     estudiante/      # inicio (reservar), mis pedidos, historial, perfil
@@ -79,7 +110,7 @@ almacenamiento/      # archivos subidos (fuera de /public), servidos por endpoin
 - Autorización por rol **verificada en el servidor** en cada endpoint (no solo en la UI): cada handler rechaza con `403` si el rol no corresponde.
 - **Anti-IDOR**: un estudiante solo accede a sus propios pedidos; el PDF de una cartilla solo lo descargan la fotocopiadora y el profesor dueño (nunca un estudiante).
 - **Subida de archivos**: validación por *magic bytes* (`%PDF` para cartillas; PDF/JPG/PNG para comprobantes), límite de 50 MB, nombre regenerado con UUID, almacenamiento fuera de `/public` y servido por endpoint autorizado.
-- **Rate limiting**: 5 intentos de login por IP con espera progresiva; 30 req/min general por usuario.
+- **Rate limiting**: 5 intentos de login por IP con espera progresiva; 30 req/min general por usuario; límite dedicado para intentos de PIN docente.
 - **Anti-CSRF**: cookies `SameSite=Strict` + verificación de `Origin` en las mutaciones.
 - **Cabeceras**: CSP estricta, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `X-Frame-Options: DENY`.
 - **Auditoría de solo inserción**: toda acción que modifica datos se registra en `Auditoria` con usuario, descripción en español y fecha. No existen endpoints de update/delete sobre la auditoría.
@@ -109,5 +140,11 @@ El proyecto se validó con el servidor corriendo (`npm run dev`) y pruebas con `
 
 **Diseño:**
 - Tokens del sistema (índigo de marca `#5B5BD6`, sombras en capas, radios 10–14px), tipografía Inter con `tracking` en títulos y JetBrains Mono para números de pedido y montos, chips de estado con punto + fondo tintado + borde tonal, sidebar con ítem activo en píldora índigo, dashboard con tarjetas de estadística y mini-gráfico de área, dropzone de PDF para el profesor, vista móvil del estudiante con bottom navigation.
+
+**Aislamiento multi-tenant (verificado con la app corriendo):**
+- Cada fotocopiadora ve solo sus pedidos, cartillas, cursos, usuarios, auditoría, estadísticas y PINes.
+- Ataque cruzado por id desde el admin del tenant A contra recursos del tenant B: ver pedido, avanzar estado, corregir, descargar PDF, aprobar cartilla y reservar → **404 en todos los casos**.
+- Filtro anti-fraude probado en 7 escenarios: estudiante común, PIN robado con mail personal, mail institucional sin PIN, PIN inventado, PIN de otra fotocopiadora, registro legítimo y reuso del PIN ya consumido. Solo el legítimo obtiene el rol de profesor.
+- Fuerza bruta de PIN: el 6.º intento devuelve `429`.
 
 **Calidad:** `npx tsc --noEmit` sin errores y `npm run build` exitoso. Las páginas de escritorio (`/panel`, `/profesor`) tuvieron un fallo de render por pasar componentes de icono y una función desde Server Components a Client Components; **se corrigió** moviendo `rutaPorRol` a un módulo neutral y pasando los iconos de navegación como claves de texto resueltas en el cliente.
