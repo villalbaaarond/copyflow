@@ -1,6 +1,13 @@
 # CopyFlow — Contexto del proyecto
 
-Plataforma para fotocopiadoras escolares: profesores suben cartillas (PDF), la fotocopiadora las aprueba, los estudiantes las reservan y pagan, la fotocopiadora gestiona los pedidos por estados. UNA SOLA web, UNA base de datos, UNA autenticación; lo único que cambia por rol son los permisos y las vistas.
+Plataforma SaaS **multi-fotocopiadora** (multi-tenant): cada fotocopiadora suscripta opera aislada dentro de la misma aplicación. Profesores suben cartillas (PDF), la fotocopiadora las aprueba, los estudiantes las reservan y pagan, la fotocopiadora gestiona los pedidos por estados. UNA SOLA web, UNA base de datos, UNA autenticación; lo que cambia por rol son los permisos y las vistas, y lo que cambia por tenant son los datos.
+
+## Multi-tenancy (regla número uno)
+Toda tabla de negocio lleva `fotocopiadoraId`. Ninguna fotocopiadora puede ver, tocar ni deducir datos de otra bajo ninguna circunstancia.
+- El `fotocopiadoraId` viaja **dentro del JWT firmado**; jamás se acepta del cliente.
+- Cada consulta filtra por el tenant del usuario autenticado. Para buscar por id se usa `findFirst({ where: { id, fotocopiadoraId } })`, nunca `findUnique({ where: { id } })`: un recurso de otro tenant debe responder 404, no 403 (no se confirma ni que existe).
+- La numeración de pedidos `P-0001` es **por fotocopiadora**, no global.
+- El email de usuario es único en toda la plataforma: cada persona pertenece a una sola fotocopiadora, y así el login resuelve el tenant sin pedirlo.
 
 ## Idioma
 Todo en español rioplatense (Argentina): interfaz, mensajes, errores, comentarios de cara al usuario. Voseo ("elegí", "subí", "reservá").
@@ -32,8 +39,14 @@ Nadie puede cambiar roles desde la aplicación excepto el admin. Cada endpoint r
 ## Flujo central (el proyecto NO está terminado hasta que esto funcione de punta a punta)
 Profesor sube cartilla (PDF + curso + materia + páginas + observaciones) → queda "En revisión" → fotocopiadora aprueba → aparece para estudiantes del curso → estudiante reserva eligiendo pago (efectivo: número de pedido + horario de retiro; transferencia: alias + subida de comprobante) → el pedido aparece en la fotocopiadora en "Pendiente" → la fotocopiadora avanza Pendiente → Preparando → Lista para retirar → Entregada → el estudiante ve cada cambio reflejado (revalidación/polling).
 
+## Registro y filtro anti-fraude docente
+Cualquiera puede registrarse desde `/registro` indicando el **código (slug)** de su fotocopiadora. El rol de profesor exige DOS filtros, verificados en el servidor:
+1. **Dominio institucional**: el email debe pertenecer al `dominioDocente` que configuró esa fotocopiadora.
+2. **PIN de 4 dígitos**: lo genera el dueño desde Ajustes → PINes docentes. Es de un solo uso, vence, y pertenece a esa fotocopiadora.
+Si falta cualquiera de los dos, la cuenta se crea como ESTUDIANTE. Como un PIN de 4 dígitos tiene poca entropía, la defensa real es el rate limiting (5 intentos por IP y bloqueo creciente), el uso único y el vencimiento.
+
 ## Modelo de datos (Prisma)
-Usuario(id, nombre, email único, hashContrasena, rol enum, creadoEn) · Curso(id, nombre) · Materia(id, nombre, cursoId) · Cartilla(id, titulo, paginas, observaciones, archivoPdf, estado enum[REVISION, APROBADA, RECHAZADA], profesorId, materiaId, creadoEn) · Pedido(id, numero "P-0001" autoincremental formateado, cartillaId, estudianteId, estado enum[PENDIENTE, PREPARANDO, LISTA, ENTREGADA], metodoPago enum[EFECTIVO, TRANSFERENCIA], pagoConfirmado bool, comprobante string?, precioCongelado int, creadoEn) · Configuracion(precioPorPagina, alias, horario) · Auditoria(id, usuarioId, accion, creadoEn — solo inserción, nunca update/delete).
+Fotocopiadora(id, nombre, slug único, dominioDocente?, activa, creadoEn) — el tenant · PinProfesor(id, codigo, etiqueta?, usado, expiraEn, usadoPorId?, fotocopiadoraId) · Usuario(id, nombre, email único, hashContrasena, rol enum, fotocopiadoraId, creadoEn) · Curso(id, nombre) · Materia(id, nombre, cursoId) · Cartilla(id, titulo, paginas, observaciones, archivoPdf, estado enum[REVISION, APROBADA, RECHAZADA], profesorId, materiaId, creadoEn) · Pedido(id, numero "P-0001" autoincremental formateado, cartillaId, estudianteId, estado enum[PENDIENTE, PREPARANDO, LISTA, ENTREGADA], metodoPago enum[EFECTIVO, TRANSFERENCIA], pagoConfirmado bool, comprobante string?, precioCongelado int, creadoEn) · Configuracion(precioPorPagina, alias, horario) · Auditoria(id, usuarioId, accion, creadoEn — solo inserción, nunca update/delete).
 El precio del pedido se CONGELA al reservar (precioCongelado), para que cambiar el precio por página no altere pedidos existentes.
 
 ## Seguridad obligatoria
@@ -45,6 +58,7 @@ El precio del pedido se CONGELA al reservar (precioCongelado), para que cambiar 
 - Escapar/sanear todo contenido de usuario (React escapa por defecto: NUNCA usar dangerouslySetInnerHTML con datos de usuario)
 - Cabeceras: CSP estricta, X-Content-Type-Options, Referrer-Policy, X-Frame-Options
 - Toda acción que modifica datos se registra en Auditoria con usuario, acción descriptiva en español, fecha y hora
+- Aislamiento multi-tenant verificado en el servidor: probar siempre el ataque cruzado (tenant A pidiendo recursos de B por id) además de los permisos por rol
 
 ## Sistema de diseño (replicar el mockup de referencia/mockup.png)
 Tokens:
@@ -69,7 +83,9 @@ NO conectar a ningún modelo externo. Es un endpoint que interpreta la pregunta 
 
 ## Datos semilla (prisma/seed.ts)
 - Cursos: 1° Año, 2° Año, 1° del Superior, 2° del Superior, 3° del Superior, 4° del Superior (editables por el admin)
-- Usuarios demo con contraseña `demo1234`: marta@copyflow.app (admin), diego@copyflow.app (empleado), gomez@escuela.edu y rios@escuela.edu (profesores), lucia@mail.com y mateo@mail.com (estudiantes)
+- DOS fotocopiadoras para poder demostrar el aislamiento: `central` (Fotocopiadora Central, dominio docente escuela.edu) y `norte` (Copias del Norte, dominio institutonorte.edu.ar)
+- Usuarios demo con contraseña `demo1234`. En `central`: marta@copyflow.app (admin), diego@copyflow.app (empleado), gomez@escuela.edu y rios@escuela.edu (profesores), lucia@mail.com y mateo@mail.com (estudiantes). En `norte`: ana@norte.app (admin), molina@institutonorte.edu.ar (profesor), sofia@mail.com (estudiante)
+- PINes docentes de prueba: central 4821 y 7390 · norte 1234
 - 6 cartillas (5 aprobadas, 1 en revisión), 5 pedidos en distintos estados con fechas de la última semana, materias por curso, registros de auditoría
 
 ## Reglas de trabajo
