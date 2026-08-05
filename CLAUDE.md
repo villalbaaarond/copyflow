@@ -97,6 +97,15 @@ NO conectar a ningún modelo externo. Es un endpoint que interpreta la pregunta 
 - PINes docentes de prueba: central 4821 y 7390 · norte 1234
 - 6 cartillas (5 aprobadas, 1 en revisión), 5 pedidos en distintos estados con fechas de la última semana, materias por curso, registros de auditoría
 
+## Suscripción de la fotocopiadora (modelo SaaS)
+Cada fotocopiadora le paga a la plataforma una suscripción mensual.
+- `Suscripcion(estado[PRUEBA, ACTIVA, VENCIDA, CANCELADA], precioMensual congelado, vigenteHasta, fotocopiadoraId único)` · `PagoSuscripcion(monto, meses, referencia, periodoHasta)` — historial de solo inserción.
+- Una fotocopiadora nueva arranca con 15 días de PRUEBA.
+- El **login verifica la vigencia**: si venció, TODOS los usuarios de ese tenant reciben 403 (no solo el dueño). El resto de las fotocopiadoras no se ve afectado.
+- Hay **5 días de gracia** tras el vencimiento: se entra igual, con aviso, para no cortarle el servicio a quien paga con demora.
+- Cobro: hoy es **manual** (transferencia + registro del pago en Ajustes → Suscripción, que extiende el período). Al integrar una pasarela, su webhook debe llamar a `registrarPago()`; no se duplica lógica.
+- Solo el admin ve y gestiona la suscripción de SU fotocopiadora.
+
 ## Reglas de trabajo
 - No agregar funcionalidades fuera de este documento
 - Commits chicos y descriptivos en español

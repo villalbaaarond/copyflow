@@ -39,6 +39,14 @@ enum MetodoPago {
   TRANSFERENCIA
 }
 
+// Estado de la suscripcion mensual que la fotocopiadora le paga a la plataforma.
+enum EstadoSuscripcion {
+  PRUEBA
+  ACTIVA
+  VENCIDA
+  CANCELADA
+}
+
 // El tenant: cada fotocopiadora suscripta a la plataforma.
 model Fotocopiadora {
   id             Int      @id @default(autoincrement())
@@ -50,6 +58,7 @@ model Fotocopiadora {
   activa         Boolean  @default(true)
   creadoEn       DateTime @default(now())
 
+  suscripcion   Suscripcion?
   usuarios      Usuario[]
   cursos        Curso[]
   materias      Materia[]
@@ -195,6 +204,40 @@ model PinProfesor {
   fotocopiadoraId Int
 
   @@index([fotocopiadoraId])
+}
+
+// Suscripcion mensual de cada fotocopiadora a la plataforma (modelo SaaS).
+// Mientras este vigente, el tenant opera normal; al vencer queda bloqueado.
+model Suscripcion {
+  id             Int               @id @default(autoincrement())
+  estado         EstadoSuscripcion @default(PRUEBA)
+  // Precio mensual en pesos, congelado al contratar.
+  precioMensual  Int               @default(15000)
+  // Fin del periodo pago en curso: la fecha que define si esta vigente.
+  vigenteHasta   DateTime
+  creadoEn       DateTime          @default(now())
+
+  fotocopiadora   Fotocopiadora @relation(fields: [fotocopiadoraId], references: [id], onDelete: Cascade)
+  fotocopiadoraId Int           @unique
+
+  pagos PagoSuscripcion[]
+}
+
+// Historial de pagos de la suscripcion. Solo insercion, como la auditoria.
+model PagoSuscripcion {
+  id            Int      @id @default(autoincrement())
+  monto         Int
+  // Meses que suma este pago al periodo.
+  meses         Int      @default(1)
+  // Como se registro: MANUAL (transferencia verificada) o el id de la pasarela.
+  referencia    String?
+  periodoHasta  DateTime
+  creadoEn      DateTime @default(now())
+
+  suscripcion   Suscripcion @relation(fields: [suscripcionId], references: [id], onDelete: Cascade)
+  suscripcionId Int
+
+  @@index([suscripcionId])
 }
 
 // Refresh tokens persistidos para permitir rotación e invalidación (logout).

@@ -7,6 +7,7 @@ import { crearRefresh } from "@/lib/refresh";
 import { esquemaLogin } from "@/lib/validaciones";
 import { responderError, verificarOrigin } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
+import { obtenerSuscripcion, evaluarAcceso } from "@/lib/suscripcion";
 import {
   controlarLogin,
   registrarLoginFallido,
@@ -63,6 +64,19 @@ export async function POST(req: Request) {
       );
     }
 
+    // La suscripcion de la fotocopiadora tiene que estar vigente (o en gracia).
+    const sub = await obtenerSuscripcion(usuario.fotocopiadoraId);
+    const acc = evaluarAcceso(sub);
+    if (!acc.vigente) {
+      return NextResponse.json(
+        {
+          error:
+            "La suscripción de esta fotocopiadora está vencida. Avisale al administrador para reactivarla.",
+        },
+        { status: 403 }
+      );
+    }
+
     limpiarLogin(ip);
 
     const acceso = await firmarAcceso({
@@ -84,6 +98,7 @@ export async function POST(req: Request) {
         rol: usuario.rol,
         fotocopiadora: fotocopiadora.nombre,
       },
+      suscripcion: { enGracia: acc.enGracia, diasRestantes: acc.diasRestantes },
     });
   } catch (error) {
     return responderError(error);

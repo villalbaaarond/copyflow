@@ -36,6 +36,8 @@ function enDias(n: number): Date {
 
 async function main() {
   console.log("Limpiando base...");
+  await prisma.pagoSuscripcion.deleteMany();
+  await prisma.suscripcion.deleteMany();
   await prisma.auditoria.deleteMany();
   await prisma.sesion.deleteMany();
   await prisma.pinProfesor.deleteMany();
@@ -90,6 +92,26 @@ async function main() {
     prisma.usuario.create({
       data: { nombre, email, hashContrasena: claveDemo, rol, fotocopiadoraId: fotId },
     });
+
+  // Suscripcion al dia: vence en 22 dias.
+  const subCentral = await prisma.suscripcion.create({
+    data: {
+      fotocopiadoraId: central.id,
+      estado: "ACTIVA",
+      precioMensual: 15000,
+      vigenteHasta: enDias(22),
+    },
+  });
+  await prisma.pagoSuscripcion.create({
+    data: {
+      suscripcionId: subCentral.id,
+      monto: 15000,
+      meses: 1,
+      referencia: "Transferencia 8842-1190",
+      periodoHasta: enDias(22),
+      creadoEn: diasAtras(8),
+    },
+  });
 
   const marta = await usuario("Marta Giménez", "marta@copyflow.app", "ADMIN", central.id);
   const diego = await usuario("Diego Fernández", "diego@copyflow.app", "EMPLEADO", central.id);
@@ -214,6 +236,16 @@ async function main() {
     },
   });
 
+  // En prueba y por vencer: sirve para ver el aviso de vencimiento.
+  await prisma.suscripcion.create({
+    data: {
+      fotocopiadoraId: norte.id,
+      estado: "PRUEBA",
+      precioMensual: 15000,
+      vigenteHasta: enDias(3),
+    },
+  });
+
   const ana = await usuario("Ana Torres", "ana@norte.app", "ADMIN", norte.id);
   const pablo = await usuario("Prof. Molina", "molina@institutonorte.edu.ar", "PROFESOR", norte.id);
   const sofia = await usuario("Sofía Ruiz", "sofia@mail.com", "ESTUDIANTE", norte.id);
@@ -255,6 +287,7 @@ async function main() {
   console.log("  • norte    → ana@norte.app (admin), molina@institutonorte.edu.ar (profesor), sofia@mail.com (estudiante)");
   console.log("  Contraseña de todos: demo1234");
   console.log("  PINes docentes de prueba: central 4821 / 7390 · norte 1234");
+  console.log("  Suscripciones: central ACTIVA (22 días) · norte PRUEBA (3 días)");
 }
 
 main()
