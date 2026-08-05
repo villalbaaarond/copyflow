@@ -23,7 +23,9 @@ export async function POST(
       throw new ErrorHttp(400, "Id inválido.");
     }
 
-    const pedido = await prisma.pedido.findUnique({ where: { id: pedidoId } });
+    const pedido = await prisma.pedido.findFirst({
+      where: { id: pedidoId, fotocopiadoraId: usuario.fotocopiadoraId },
+    });
     if (!pedido) throw new ErrorHttp(404, "El pedido no existe.");
 
     const siguiente = SIGUIENTE_ESTADO[pedido.estado];
@@ -38,6 +40,7 @@ export async function POST(
       });
       await registrarAuditoria(
         usuario.id,
+        usuario.fotocopiadoraId,
         `Avanzó el pedido ${pedido.numero} a ${ETIQUETA_ESTADO_PEDIDO[siguiente]}`,
         tx
       );

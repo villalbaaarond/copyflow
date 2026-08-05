@@ -18,15 +18,16 @@ const incluirPedido = {
   estudiante: { select: { id: true, nombre: true, email: true } },
 } as const;
 
-// GET: estudiante ve SOLO sus pedidos; fotocopiadora ve todos.
+// GET: estudiante ve SOLO sus pedidos; la fotocopiadora ve los de SU tenant.
 export async function GET(req: Request) {
   try {
     const usuario = await exigirUsuario();
     const { searchParams } = new URL(req.url);
+    const tenant = { fotocopiadoraId: usuario.fotocopiadoraId };
 
     if (usuario.rol === "ESTUDIANTE") {
       const pedidos = await prisma.pedido.findMany({
-        where: { estudianteId: usuario.id },
+        where: { ...tenant, estudianteId: usuario.id },
         include: incluirPedido,
         orderBy: { creadoEn: "desc" },
       });
@@ -36,15 +37,18 @@ export async function GET(req: Request) {
     if (usuario.rol === "ADMIN" || usuario.rol === "EMPLEADO") {
       const estado = searchParams.get("estado");
       const pedidos = await prisma.pedido.findMany({
-        where: estado
-          ? {
-              estado: estado as
-                | "PENDIENTE"
-                | "PREPARANDO"
-                | "LISTA"
-                | "ENTREGADA",
-            }
-          : undefined,
+        where: {
+          ...tenant,
+          ...(estado
+            ? {
+                estado: estado as
+                  | "PENDIENTE"
+                  | "PREPARANDO"
+                  | "LISTA"
+                  | "ENTREGADA",
+              }
+            : {}),
+        },
         include: incluirPedido,
         orderBy: { creadoEn: "desc" },
       });
@@ -57,27 +61,33 @@ export async function GET(req: Request) {
   }
 }
 
-// POST: el estudiante reserva una cartilla aprobada. El precio se CONGELA acá.
+// POST: el estudiante reserva una cartilla aprobada de SU fotocopiadora.
+// El precio se CONGELA acá con la configuración de ese tenant.
 export async function POST(req: Request) {
   try {
     verificarOrigin(req);
     const usuario = await exigirRol("ESTUDIANTE");
     const datos = esquemaReserva.parse(await req.json());
 
-    const cartilla = await prisma.cartilla.findUnique({
-      where: { id: datos.cartillaId },
+    const cartilla = await prisma.cartilla.findFirst({
+      where: {
+        id: datos.cartillaId,
+        fotocopiadoraId: usuario.fotocopiadoraId,
+      },
     });
     if (!cartilla) throw new ErrorHttp(404, "La cartilla no existe.");
     if (cartilla.estado !== "APROBADA") {
       throw new ErrorHttp(409, "Esta cartilla todavía no está disponible.");
     }
 
-    const config = await prisma.configuracion.findFirst();
+    const config = await prisma.configuracion.findUnique({
+      where: { fotocopiadoraId: usuario.fotocopiadoraId },
+    });
     const precioPorPagina = config?.precioPorPagina ?? 50;
     const precioCongelado = cartilla.paginas * precioPorPagina;
 
     const pedido = await prisma.$transaction(async (tx) => {
-      const numero = await proximoNumeroPedido(tx);
+      const numero = await proximoNumeroPedido(tx, usuario.fotocopiadoraId);
       const horarioRetiro =
         datos.metodoPago === "EFECTIVO"
           ? config?.horario ?? "A coordinar"
@@ -92,11 +102,13 @@ export async function POST(req: Request) {
           pagoConfirmado: false,
           precioCongelado,
           horarioRetiro,
+          fotocopiadoraId: usuario.fotocopiadoraId,
         },
         include: incluirPedido,
       });
       await registrarAuditoria(
         usuario.id,
+        usuario.fotocopiadoraId,
         `Reservó el pedido ${numero} (${datos.metodoPago.toLowerCase()})`,
         tx
       );

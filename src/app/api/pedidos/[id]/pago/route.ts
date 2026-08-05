@@ -25,7 +25,9 @@ export async function POST(
 
     const { pagoConfirmado } = esquemaConfirmarPago.parse(await req.json());
 
-    const pedido = await prisma.pedido.findUnique({ where: { id: pedidoId } });
+    const pedido = await prisma.pedido.findFirst({
+      where: { id: pedidoId, fotocopiadoraId: usuario.fotocopiadoraId },
+    });
     if (!pedido) throw new ErrorHttp(404, "El pedido no existe.");
     if (pedido.metodoPago !== "TRANSFERENCIA") {
       throw new ErrorHttp(409, "Solo se confirma el pago de transferencias.");
@@ -38,6 +40,7 @@ export async function POST(
       });
       await registrarAuditoria(
         usuario.id,
+        usuario.fotocopiadoraId,
         `Confirmó el pago por transferencia del pedido ${pedido.numero}`,
         tx
       );

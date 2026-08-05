@@ -15,8 +15,8 @@ export async function GET(
       throw new ErrorHttp(400, "Id inválido.");
     }
 
-    const pedido = await prisma.pedido.findUnique({
-      where: { id: pedidoId },
+    const pedido = await prisma.pedido.findFirst({
+      where: { id: pedidoId, fotocopiadoraId: usuario.fotocopiadoraId },
       include: {
         cartilla: { include: { materia: { include: { curso: true } } } },
         estudiante: { select: { id: true, nombre: true, email: true } },
