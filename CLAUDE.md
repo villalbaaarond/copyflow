@@ -15,7 +15,7 @@ Todo en español rioplatense (Argentina): interfaz, mensajes, errores, comentari
 ## Stack obligatorio
 - **Next.js 15** (App Router) + **TypeScript** estricto
 - **Tailwind CSS** con los tokens de diseño de este archivo
-- **Prisma** + **SQLite** en desarrollo (archivo `dev.db`), preparado para migrar a PostgreSQL solo cambiando el datasource
+- **Prisma** + **PostgreSQL** (misma base en desarrollo y produccion). Los PDF se guardan en disco local en desarrollo y en la nube (Vercel Blob) en produccion, eligiendo el motor solo segun BLOB_READ_WRITE_TOKEN; siempre servidos por endpoint autorizado
 - Autenticación propia: **argon2** para hashear contraseñas, **JWT de acceso (15 min) + refresh token (7 días)** en cookies `httpOnly` `Secure` `SameSite=Strict`, con rotación de refresh
 - Validación con **zod** en TODOS los endpoints (nunca confiar en el cliente)
 - **Sin librerías de UI prefabricadas** (no shadcn, no MUI): componentes propios con Tailwind para lograr el look exacto del mockup
@@ -109,5 +109,5 @@ Cada fotocopiadora le paga a la plataforma una suscripción mensual.
 ## Reglas de trabajo
 - No agregar funcionalidades fuera de este documento
 - Commits chicos y descriptivos en español
-- `npm run dev` debe levantar todo con un solo comando tras `npm install && npx prisma migrate dev && npx prisma db seed`
+- `npm run dev` debe levantar todo tras `npm install && npx prisma migrate dev && npx prisma db seed`, con DATABASE_URL apuntando a un PostgreSQL
 - Al terminar cada bloque, invocar a los subagentes: `auditor-seguridad` tras tocar auth/endpoints, `disenador-ui` tras tocar pantallas, `qa-tester` antes de dar por terminado

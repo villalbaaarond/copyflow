@@ -1,5 +1,5 @@
 // CopyFlow — esquema de datos (SaaS multi-tenant).
-// SQLite en desarrollo; para PostgreSQL solo cambiar el datasource.
+// PostgreSQL. La conexion sale de DATABASE_URL.
 //
 // AISLAMIENTO: toda tabla con datos de negocio lleva fotocopiadoraId. Ninguna
 // consulta de la aplicación puede omitirlo: los helpers de auth siempre
@@ -10,7 +10,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  // PostgreSQL en desarrollo y en produccion: la misma base en los dos lados,
+  // para que nada "funcione en mi maquina y falle publicado".
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

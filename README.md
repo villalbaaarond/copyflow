@@ -24,20 +24,25 @@ Si falta cualquiera de los dos, la cuenta se crea como **estudiante**. Como un P
 
 - **Next.js 15** (App Router) + **TypeScript** estricto
 - **Tailwind CSS** con los tokens de diseño del proyecto (componentes propios, sin librerías de UI prefabricadas)
-- **Prisma** + **SQLite** en desarrollo (`prisma/dev.db`). Para PostgreSQL solo se cambia el `datasource` del `schema.prisma`.
+- **Prisma** + **PostgreSQL** (la misma base en desarrollo y en producción, para que nada falle recién al publicar).
 - Autenticación propia: **Argon2id** para contraseñas, **JWT de acceso (15 min) + refresh token rotativo (7 días)** en cookies `httpOnly` `Secure` `SameSite=Strict`.
 - Validación con **zod** en todos los endpoints.
 
 ## Cómo levantarlo
 
+1. Copiá `.env.example` a `.env` y completá `DATABASE_URL` con tu PostgreSQL.
+   La forma más rápida de tener uno gratis y sin instalar nada es crear una base
+   en [Neon](https://neon.tech) y pegar la cadena de conexión que te da.
+
 ```bash
 npm install
-npx prisma migrate dev      # crea la base y aplica la migración
+npx prisma migrate dev      # crea las tablas
 npx prisma db seed          # carga los datos demo
 npm run dev                 # http://localhost:3000
 ```
 
-> El archivo `.env` ya viene con `DATABASE_URL` y un `JWT_SECRET` de desarrollo. **Cambiá `JWT_SECRET` en producción.**
+> **En producción generá tu propio `JWT_SECRET`:**
+> `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
 
 Para una build de producción:
 
@@ -69,6 +74,27 @@ La semilla crea **dos fotocopiadoras** para poder comprobar el aislamiento. Toda
 PINes docentes de prueba: **central** `7390` · **norte** `1234`. Entrando con `marta@copyflow.app` en *Ajustes → PINes docentes* podés generar más.
 
 > Probá el aislamiento: entrá como `marta@copyflow.app` y fijate que no existe ningún dato de Copias del Norte, y viceversa.
+
+## Publicar en internet (deploy)
+
+La app está lista para publicarse. Necesita **tres variables de entorno**:
+
+| Variable | Para qué | Obligatoria |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL (Neon, Vercel Postgres, Supabase…) | Sí |
+| `JWT_SECRET` | Firma de las sesiones. Una clave larga y propia | Sí |
+| `BLOB_READ_WRITE_TOKEN` | Guardar los PDF en la nube | Sí en producción |
+
+**Sobre los archivos:** un servidor publicado no conserva lo que se escribe en su
+disco (se borra en cada despliegue). Por eso el guardado tiene dos motores y
+elige solo: si existe `BLOB_READ_WRITE_TOKEN` sube los PDF a la nube; si no,
+los guarda en la carpeta local `almacenamiento/`, que es lo correcto para
+desarrollo. En los dos casos el archivo **se sigue sirviendo por un endpoint que
+valida el rol**, nunca por una URL pública adivinable.
+
+Pasos: crear la base, importar el repo en la plataforma de hosting, cargar esas
+tres variables y desplegar. Después, una sola vez:
+`npx prisma migrate deploy` y `npx prisma db seed`.
 
 ## El flujo central
 
