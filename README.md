@@ -36,10 +36,15 @@ Si falta cualquiera de los dos, la cuenta se crea como **estudiante**. Como un P
 
 ```bash
 npm install
-npx prisma migrate dev      # crea las tablas
+npx prisma generate         # genera el cliente de Prisma
+npx prisma migrate deploy   # crea las tablas
 npx prisma db seed          # carga los datos demo
 npm run dev                 # http://localhost:3000
 ```
+
+> `npx prisma generate` va aparte porque las versiones nuevas de npm bloquean
+> los scripts de instalación de los paquetes por seguridad, así que el cliente
+> de Prisma no se genera solo al hacer `npm install`.
 
 > **En producción generá tu propio `JWT_SECRET`:**
 > `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
