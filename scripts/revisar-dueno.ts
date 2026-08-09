@@ -6,6 +6,7 @@
 // revisa todo lo necesario y dice qué falla, sin mostrar ninguna clave.
 
 import { PrismaClient } from "@prisma/client";
+import argon2 from "argon2";
 
 const prisma = new PrismaClient();
 
@@ -113,15 +114,49 @@ async function principal() {
       console.log(
         `     ${cuenta.totpActivo ? "Segundo factor ya configurado." : "Falta configurar el segundo factor (se hace al entrar la primera vez)."}`
       );
+
+      // 5. La prueba que de verdad importa: ¿la contraseña del .env es la
+      // misma que quedó guardada? Se compara contra el hash, igual que hace
+      // el login. Así se distingue "escribo mal la contraseña" de "el panel
+      // está rechazando por otro motivo".
+      const claveDelArchivo = process.env.CLAVE_DUENO_INICIAL;
+      if (!claveDelArchivo) {
+        console.log(
+          "     (CLAVE_DUENO_INICIAL ya no está en el .env, así que no se puede probar la contraseña acá.)"
+        );
+      } else {
+        const registro = await prisma.duenoPlataforma.findUnique({
+          where: { email: cuenta.email },
+          select: { hashContrasena: true },
+        });
+        const coincide = registro
+          ? await argon2.verify(registro.hashContrasena, claveDelArchivo).catch(() => false)
+          : false;
+        if (coincide) {
+          bien("La contraseña del .env es la que abre el panel");
+          console.log(
+            `     Fijate que tenga ${claveDelArchivo.length} caracteres y que no le sobren espacios al copiarla.`
+          );
+        } else {
+          mal(
+            "La contraseña del .env NO coincide con la guardada en la base",
+            "Corré de nuevo:  npm run dueno   (vuelve a guardar la que está hoy en el .env)"
+          );
+        }
+      }
     }
   }
 
   console.log("");
   if (problemas === 0) {
     console.log("  Todo en orden. Entrá a /dueno/ingresar\n");
-    console.log("  IMPORTANTE: si el servidor ya estaba corriendo cuando editaste");
-    console.log("  el .env, cortalo con Ctrl+C y volvé a arrancarlo con npm run dev.");
-    console.log("  Next.js lee las variables una sola vez, al arrancar.\n");
+    console.log("  Si aun asi te rechaza, casi seguro es una de estas dos:\n");
+    console.log("  1. El servidor arrancó ANTES de que editaras el .env.");
+    console.log("     Next.js lee las variables una sola vez. Cortalo con Ctrl+C");
+    console.log("     y volvé a arrancarlo con npm run dev.\n");
+    console.log("  2. Quedaste bloqueado por intentos fallidos (son 3 por IP,");
+    console.log("     y el bloqueo crece). Reiniciar el servidor también lo borra,");
+    console.log("     porque el contador vive en memoria.\n");
   } else {
     console.log(`  ${problemas} cosa(s) para corregir. Después volvé a correr: npm run revisar\n`);
     process.exitCode = 1;
