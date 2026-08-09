@@ -101,7 +101,23 @@ async function principal() {
       select: { email: true, totpActivo: true },
     });
     if (cuentas.length === 0) {
-      mal("Todavía no creaste la cuenta de dueño", "Corré:  npm run dueno");
+      // Sin cuenta, la causa casi siempre es que "npm run dueno" falló por la
+      // contraseña inicial. Conviene decirlo acá y no mandar a repetir un
+      // comando que va a volver a fallar por lo mismo.
+      const clave = process.env.CLAVE_DUENO_INICIAL;
+      if (!clave) {
+        mal(
+          "No hay cuenta de dueño y falta CLAVE_DUENO_INICIAL en el .env",
+          'Agregala al .env (12 caracteres o más):  CLAVE_DUENO_INICIAL="tu-contrasena" y después corré: npm run dueno'
+        );
+      } else if (clave.length < 12) {
+        mal(
+          `No hay cuenta de dueño porque CLAVE_DUENO_INICIAL tiene ${clave.length} caracteres y hacen falta 12`,
+          "Poné una más larga en el .env y volvé a correr: npm run dueno"
+        );
+      } else {
+        mal("Todavía no creaste la cuenta de dueño", "Corré:  npm run dueno");
+      }
     } else {
       const cuenta = cuentas[0];
       bien(`Cuenta creada para ${cuenta.email}`);

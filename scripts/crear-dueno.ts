@@ -74,7 +74,13 @@ async function principal() {
 
 principal()
   .catch((e) => {
-    console.error("\n  " + (e instanceof Error ? e.message : String(e)) + "\n");
+    // Bien visible: si esto pasa desapercibido, la cuenta no se crea y el
+    // panel después rechaza el ingreso sin explicar por qué.
+    console.error("\n" + "=".repeat(64));
+    console.error("  NO SE CREÓ LA CUENTA");
+    console.error("=".repeat(64));
+    console.error("  " + (e instanceof Error ? e.message : String(e)));
+    console.error("=".repeat(64) + "\n");
     process.exitCode = 1;
   })
   .finally(() => prisma.$disconnect());
