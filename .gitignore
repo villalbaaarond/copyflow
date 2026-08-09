@@ -14,8 +14,10 @@ prisma/dev.db-journal
 # archivos subidos
 /almacenamiento/cartillas/*
 /almacenamiento/comprobantes/*
+/almacenamiento/trabajos/*
 !/almacenamiento/cartillas/.gitkeep
 !/almacenamiento/comprobantes/.gitkeep
+!/almacenamiento/trabajos/.gitkeep
 
 # entorno
 .env

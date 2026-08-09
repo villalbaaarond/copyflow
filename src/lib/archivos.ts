@@ -6,6 +6,8 @@ import { join } from "path";
 const RAIZ = join(process.cwd(), "almacenamiento");
 export const DIR_CARTILLAS = join(RAIZ, "cartillas");
 export const DIR_COMPROBANTES = join(RAIZ, "comprobantes");
+// PDF que sube el propio estudiante para imprimir.
+export const DIR_TRABAJOS = join(RAIZ, "trabajos");
 
 export const LIMITE_BYTES = 50 * 1024 * 1024; // 50 MB
 
@@ -62,7 +64,9 @@ function validarNombre(nombre: string): void {
 // Carpeta lógica ("cartillas" / "comprobantes") a partir de la ruta local,
 // para que la nube use el mismo criterio de organización.
 function carpetaDe(dir: string): string {
-  return dir.endsWith("comprobantes") ? "comprobantes" : "cartillas";
+  if (dir.endsWith("comprobantes")) return "comprobantes";
+  if (dir.endsWith("trabajos")) return "trabajos";
+  return "cartillas";
 }
 
 // Guarda un buffer con nombre regenerado por uuid. Devuelve el nombre de archivo.

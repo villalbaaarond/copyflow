@@ -145,8 +145,14 @@ model Cartilla {
 model Pedido {
   id              Int          @id @default(autoincrement())
   numero          String
-  cartilla        Cartilla     @relation(fields: [cartillaId], references: [id], onDelete: Restrict)
-  cartillaId      Int
+  // Un pedido nace de una cartilla aprobada (material de catedra) O de un PDF
+  // que sube el propio estudiante. Por eso la cartilla es opcional y, cuando
+  // no esta, viajan los datos del archivo propio.
+  cartilla        Cartilla?    @relation(fields: [cartillaId], references: [id], onDelete: Restrict)
+  cartillaId      Int?
+  archivoPropio   String?
+  tituloPropio    String?
+  paginasPropio   Int?
   estudiante      Usuario      @relation(fields: [estudianteId], references: [id], onDelete: Restrict)
   estudianteId    Int
   estado          EstadoPedido @default(PENDIENTE)

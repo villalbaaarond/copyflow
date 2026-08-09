@@ -126,12 +126,13 @@ export function GestionPedidos() {
                       <ChipPedido estado={p.estado} />
                     </div>
                     <p className="mt-2 text-[15px] font-semibold text-texto">
-                      {p.cartilla?.titulo}
+                      {p.cartilla?.titulo ?? p.tituloPropio}
                     </p>
                     <p className="text-sm text-secundario">
                       {p.estudiante?.nombre} ·{" "}
-                      {p.cartilla?.materia?.curso?.nombre} ·{" "}
-                      {p.cartilla?.paginas} págs
+                      {p.cartilla
+                        ? `${p.cartilla.materia?.curso?.nombre} · ${p.cartilla.paginas} págs`
+                        : `archivo propio · ${p.paginasPropio} págs`}
                     </p>
                     <p className="mt-1 text-xs text-terciario">
                       Reservado el {formatearFecha(p.creadoEn)}
@@ -177,6 +178,17 @@ export function GestionPedidos() {
                       <Check size={15} strokeWidth={2.2} />
                       Confirmar pago
                     </button>
+                  )}
+                  {p.archivoPropio && (
+                    <a
+                      href={`/api/pedidos/${p.id}/trabajo`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secundario"
+                    >
+                      <FileText size={15} strokeWidth={2} />
+                      Ver PDF a imprimir
+                    </a>
                   )}
                   {p.metodoPago === "TRANSFERENCIA" && p.comprobante && (
                     <a

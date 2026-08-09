@@ -57,6 +57,13 @@ export const esquemaRevisionCartilla = z.object({
   decision: z.enum(["APROBADA", "RECHAZADA"]),
 });
 
+// Trabajo propio: el estudiante sube su PDF para imprimir (no es cartilla).
+export const esquemaTrabajoPropio = z.object({
+  titulo: z.string().min(2, "Poné un nombre al trabajo.").max(120),
+  paginas: z.coerce.number().int().min(1, "Indicá las páginas.").max(2000),
+  metodoPago: z.enum(["EFECTIVO", "TRANSFERENCIA"]),
+});
+
 export const esquemaReserva = z.object({
   cartillaId: z.coerce.number().int().positive(),
   metodoPago: z.enum(["EFECTIVO", "TRANSFERENCIA"]),

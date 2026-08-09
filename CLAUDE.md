@@ -97,6 +97,19 @@ NO conectar a ningún modelo externo. Es un endpoint que interpreta la pregunta 
 - PINes docentes de prueba: central 4821 y 7390 · norte 1234
 - 6 cartillas (5 aprobadas, 1 en revisión), 5 pedidos en distintos estados con fechas de la última semana, materias por curso, registros de auditoría
 
+## Trabajos propios del estudiante
+Además de reservar cartillas aprobadas, el estudiante puede subir SU PROPIO PDF para imprimir. Ese trabajo entra en la MISMA cola de pedidos de la fotocopiadora (una sola lista para el empleado), no en una pantalla aparte.
+- En `Pedido`, `cartillaId` es opcional: cuando el pedido nace de un archivo propio viajan `archivoPropio`, `tituloPropio` y `paginasPropio`.
+- Mismas reglas que siempre: magic bytes `%PDF`, 50 MB, nombre uuid, fuera de /public y servido por `/api/pedidos/[id]/trabajo`, que solo autoriza a la fotocopiadora y al estudiante dueño.
+- El precio se congela al subirlo, igual que en una reserva.
+
+## Estadísticas del dashboard (sin datos de adorno)
+Cada gráfico mide algo distinto y sale de la base real; ninguna serie se repite entre tarjetas ni se rellena con valores inventados.
+- `serieVentas`: ingresos por día de los últimos 14 días, contando SOLO pedidos entregados.
+- `seriePedidos`: pedidos recibidos por día (reservas + trabajos propios), incluidos los días en cero.
+- La variación porcentual compara los últimos 7 días contra los 7 anteriores; si no hay base de comparación se omite en vez de inventar un número.
+- Si no hubo movimiento, el gráfico lo dice en texto en vez de dibujar una línea plana.
+
 ## Suscripción de la fotocopiadora (modelo SaaS)
 Cada fotocopiadora le paga a la plataforma una suscripción mensual.
 - `Suscripcion(estado[PRUEBA, ACTIVA, VENCIDA, CANCELADA], precioMensual congelado, vigenteHasta, fotocopiadoraId único)` · `PagoSuscripcion(monto, meses, referencia, periodoHasta)` — historial de solo inserción.

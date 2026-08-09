@@ -7,9 +7,15 @@ import {
   verificarOrigin,
   ErrorHttp,
 } from "@/lib/auth";
-import { esquemaReserva } from "@/lib/validaciones";
+import { esquemaReserva, esquemaTrabajoPropio } from "@/lib/validaciones";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { proximoNumeroPedido } from "@/lib/formato";
+import {
+  DIR_TRABAJOS,
+  LIMITE_BYTES,
+  esPdf,
+  guardarArchivo,
+} from "@/lib/archivos";
 
 const incluirPedido = {
   cartilla: {
@@ -61,12 +67,88 @@ export async function GET(req: Request) {
   }
 }
 
-// POST: el estudiante reserva una cartilla aprobada de SU fotocopiadora.
-// El precio se CONGELA acá con la configuración de ese tenant.
+// POST: el estudiante genera un pedido. Dos caminos:
+//   • JSON  -> reserva una cartilla aprobada de su fotocopiadora.
+//   • multipart -> sube SU PROPIO PDF para imprimir (trabajo personal).
+// En los dos casos el precio se CONGELA con la configuración de ese tenant y
+// el pedido entra en la misma cola de la fotocopiadora.
 export async function POST(req: Request) {
   try {
     verificarOrigin(req);
     const usuario = await exigirRol("ESTUDIANTE");
+
+    const config = await prisma.configuracion.findUnique({
+      where: { fotocopiadoraId: usuario.fotocopiadoraId },
+    });
+    const precioPorPagina = config?.precioPorPagina ?? 50;
+    const tipoContenido = req.headers.get("content-type") ?? "";
+
+    // ---------- Camino 1: trabajo propio (PDF del estudiante) ----------
+    if (tipoContenido.includes("multipart/form-data")) {
+      const form = await req.formData();
+      const archivo = form.get("archivo");
+      const datos = esquemaTrabajoPropio.parse({
+        titulo: form.get("titulo"),
+        paginas: form.get("paginas"),
+        metodoPago: form.get("metodoPago"),
+      });
+
+      if (!(archivo instanceof File)) {
+        throw new ErrorHttp(400, "Subí el PDF que querés imprimir.");
+      }
+      if (archivo.size > LIMITE_BYTES) {
+        throw new ErrorHttp(413, "El archivo supera los 50 MB.");
+      }
+      const buf = Buffer.from(await archivo.arrayBuffer());
+      if (!esPdf(buf)) {
+        throw new ErrorHttp(400, "El archivo no es un PDF válido.");
+      }
+
+      const nombrePdf = await guardarArchivo(DIR_TRABAJOS, buf, "pdf");
+      const precioCongelado = datos.paginas * precioPorPagina;
+
+      const pedido = await prisma.$transaction(async (tx) => {
+        const numero = await proximoNumeroPedido(tx, usuario.fotocopiadoraId);
+        const p = await tx.pedido.create({
+          data: {
+            numero,
+            cartillaId: null,
+            archivoPropio: nombrePdf,
+            tituloPropio: datos.titulo,
+            paginasPropio: datos.paginas,
+            estudianteId: usuario.id,
+            estado: "PENDIENTE",
+            metodoPago: datos.metodoPago,
+            pagoConfirmado: false,
+            precioCongelado,
+            horarioRetiro:
+              datos.metodoPago === "EFECTIVO"
+                ? config?.horario ?? "A coordinar"
+                : null,
+            fotocopiadoraId: usuario.fotocopiadoraId,
+          },
+          include: incluirPedido,
+        });
+        await registrarAuditoria(
+          usuario.id,
+          usuario.fotocopiadoraId,
+          `Subió el trabajo "${datos.titulo}" y generó el pedido ${numero}`,
+          tx
+        );
+        return p;
+      });
+
+      return NextResponse.json(
+        {
+          pedido,
+          alias:
+            datos.metodoPago === "TRANSFERENCIA" ? config?.alias ?? null : null,
+        },
+        { status: 201 }
+      );
+    }
+
+    // ---------- Camino 2: reserva de una cartilla aprobada ----------
     const datos = esquemaReserva.parse(await req.json());
 
     const cartilla = await prisma.cartilla.findFirst({
@@ -80,10 +162,6 @@ export async function POST(req: Request) {
       throw new ErrorHttp(409, "Esta cartilla todavía no está disponible.");
     }
 
-    const config = await prisma.configuracion.findUnique({
-      where: { fotocopiadoraId: usuario.fotocopiadoraId },
-    });
-    const precioPorPagina = config?.precioPorPagina ?? 50;
     const precioCongelado = cartilla.paginas * precioPorPagina;
 
     const pedido = await prisma.$transaction(async (tx) => {

@@ -74,9 +74,11 @@ export function MisPedidos({ activos }: { activos: boolean }) {
             <div className="flex items-start justify-between">
               <div className="min-w-0">
                 <span className="mono text-sm font-bold text-marca">{p.numero}</span>
-                <p className="mt-1 text-[15px] font-semibold text-texto">{p.cartilla?.titulo}</p>
+                <p className="mt-1 text-[15px] font-semibold text-texto">
+                  {p.cartilla?.titulo ?? p.tituloPropio}
+                </p>
                 <p className="text-xs text-terciario">
-                  {p.cartilla?.materia?.nombre} · {formatearFecha(p.creadoEn)}
+                  {p.cartilla?.materia?.nombre ?? "Mi archivo"} · {formatearFecha(p.creadoEn)}
                 </p>
               </div>
               <ChipPedido estado={p.estado} />

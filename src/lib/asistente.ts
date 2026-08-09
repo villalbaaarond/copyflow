@@ -54,12 +54,12 @@ export async function responderAsistente(
     }
     const grupos = new Map<string, { copias: number; paginas: number }>();
     for (const p of pedidos) {
-      const g = grupos.get(p.cartilla.titulo) ?? {
-        copias: 0,
-        paginas: p.cartilla.paginas,
-      };
+      // El pedido puede venir de una cartilla o de un PDF propio del estudiante.
+      const titulo = p.cartilla?.titulo ?? p.tituloPropio ?? "Trabajo sin título";
+      const paginas = p.cartilla?.paginas ?? p.paginasPropio ?? 0;
+      const g = grupos.get(titulo) ?? { copias: 0, paginas };
       g.copias += 1;
-      grupos.set(p.cartilla.titulo, g);
+      grupos.set(titulo, g);
     }
     const items = [...grupos.entries()].map(
       ([titulo, g]) =>
@@ -94,7 +94,7 @@ export async function responderAsistente(
   if (incluyeAlguna(t, ["mas pedida", "mas pedido", "popular", "mas reservada"])) {
     const agrupado = await prisma.pedido.groupBy({
       by: ["cartillaId"],
-      where: { fotocopiadoraId },
+      where: { fotocopiadoraId, cartillaId: { not: null } },
       _count: { cartillaId: true },
       orderBy: { _count: { cartillaId: "desc" } },
       take: 1,
@@ -107,10 +107,13 @@ export async function responderAsistente(
         sugerencias: SUGERENCIAS,
       };
     }
-    const cartilla = await prisma.cartilla.findFirst({
-      where: { id: agrupado[0].cartillaId, fotocopiadoraId },
-      select: { titulo: true },
-    });
+    const idMasPedida = agrupado[0].cartillaId;
+    const cartilla = idMasPedida
+      ? await prisma.cartilla.findFirst({
+          where: { id: idMasPedida, fotocopiadoraId },
+          select: { titulo: true },
+        })
+      : null;
     return {
       titulo: "Cartilla más pedida",
       texto: `La más pedida es "${cartilla?.titulo}" con ${agrupado[0]._count.cartillaId} ${agrupado[0]._count.cartillaId === 1 ? "pedido" : "pedidos"}.`,

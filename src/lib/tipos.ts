@@ -63,7 +63,10 @@ export interface Cartilla {
 export interface Pedido {
   id: number;
   numero: string;
-  cartillaId: number;
+  cartillaId: number | null;
+  archivoPropio?: string | null;
+  tituloPropio?: string | null;
+  paginasPropio?: number | null;
   estudianteId: number;
   estado: EstadoPedido;
   metodoPago: MetodoPago;
@@ -72,7 +75,7 @@ export interface Pedido {
   precioCongelado: number;
   horarioRetiro: string | null;
   creadoEn: string;
-  cartilla?: Cartilla;
+  cartilla?: Cartilla | null;
   estudiante?: { id: number; nombre: string; email: string };
 }
 
