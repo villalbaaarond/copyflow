@@ -15,6 +15,7 @@ import {
   uriOtpauth,
   secretoLegible,
 } from "@/lib/totp";
+import { generarQr } from "@/lib/qr";
 import {
   controlarDueno,
   registrarDuenoFallido,
@@ -56,10 +57,15 @@ export async function GET() {
       data: { totpSecreto: secreto },
     });
 
+    // El QR evita tener que copiar 32 caracteres a mano al celular, que es
+    // donde se confunden la O con el cero y la I con el uno. La clave en
+    // texto queda igual, como respaldo si la cámara no coopera.
+    const uri = uriOtpauth(dueno.email, secreto);
     return NextResponse.json({
       yaConfigurado: false,
       secreto: secretoLegible(secreto),
-      uri: uriOtpauth(dueno.email, secreto),
+      uri,
+      qr: generarQr(uri),
     });
   } catch (error) {
     return responderError(error);

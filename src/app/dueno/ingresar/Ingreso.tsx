@@ -11,6 +11,31 @@ interface Alta {
   yaConfigurado: boolean;
   secreto?: string;
   uri?: string;
+  qr?: { tamano: number; path: string };
+}
+
+// El QR va sobre fondo blanco sí o sí: los lectores necesitan contraste y
+// zona de silencio, y el resto de la aplicación es oscura.
+function CodigoQr({ qr }: { qr: { tamano: number; path: string } }) {
+  return (
+    // El recuadro blanco lleva el redondeo; el SVG queda cuadrado. Si se
+    // redondea el SVG, el recorte se come las esquinas y ahí viven justo los
+    // tres cuadrados que el lector usa para ubicar el código.
+    <div className="flex justify-center">
+      <div className="rounded-sm bg-white p-2">
+        <svg
+          viewBox={`0 0 ${qr.tamano} ${qr.tamano}`}
+          className="block h-[224px] w-[224px]"
+          shapeRendering="crispEdges"
+          role="img"
+          aria-label="Código QR para la app de autenticación"
+        >
+          <rect width={qr.tamano} height={qr.tamano} fill="#FFFFFF" />
+          <path d={qr.path} fill="#000000" />
+        </svg>
+      </div>
+    </div>
+  );
 }
 
 // Ingreso en dos pasos. El primero valida la contraseña; el segundo, el código
@@ -135,16 +160,38 @@ export function IngresoDueno() {
                       Instalá Google Authenticator (o Authy) en tu celular.
                     </li>
                     <li>
-                      Elegí <strong>Ingresar una clave de configuración</strong>.
+                      Tocá el <strong>+</strong> y elegí{" "}
+                      <strong>Escanear un código QR</strong>.
                     </li>
-                    <li>Escribí esta clave y guardá:</li>
+                    <li>Apuntá la cámara acá:</li>
                   </ol>
-                  <p className="mono select-all break-all rounded-sm border border-borde bg-fondo px-3 py-2.5 text-[13px] tracking-wider text-marca">
-                    {alta.secreto}
-                  </p>
+
+                  {alta.qr && <CodigoQr qr={alta.qr} />}
+
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-terciario hover:text-secundario">
+                      ¿No podés escanear? Cargala a mano
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      <p className="text-secundario">
+                        Elegí <strong>Ingresar una clave de configuración</strong>,
+                        tipo <strong>Basada en tiempo</strong>, y escribí:
+                      </p>
+                      <p className="mono select-all break-all rounded-sm border border-borde bg-fondo px-3 py-2.5 text-[13px] tracking-wider text-marca">
+                        {alta.secreto}
+                      </p>
+                      <p className="text-terciario">
+                        Ojo: esta clave <strong>no tiene ceros ni unos</strong>. Lo
+                        que parece un cero es la letra <strong>O</strong> y lo que
+                        parece un uno es la letra <strong>I</strong>. Los espacios
+                        no importan.
+                      </p>
+                    </div>
+                  </details>
+
                   <p className="text-xs text-terciario">
-                    Anotá esta clave en un papel y guardalo. Es la única vez que
-                    se muestra.
+                    Anotá la clave de arriba en un papel y guardalo. Es la única
+                    vez que se muestra.
                   </p>
                 </div>
               )}
