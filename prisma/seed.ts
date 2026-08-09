@@ -34,7 +34,47 @@ function enDias(n: number): Date {
   return d;
 }
 
+// Las dos fotocopiadoras que crea esta semilla. Cualquier otra que exista es
+// de verdad: la cargó alguien desde el panel y NO se puede pisar.
+const SLUGS_DEMO = ["central", "norte"];
+
+// La semilla BORRA la base entera antes de cargar los datos de prueba. Eso
+// está bien mientras sea una base de desarrollo, y es una catástrofe si
+// alguna vez se corre contra la base publicada. Este freno distingue las dos
+// situaciones mirando si hay fotocopiadoras que la semilla no creó.
+async function frenoDeSeguridad() {
+  const reales = await prisma.fotocopiadora.findMany({
+    where: { slug: { notIn: SLUGS_DEMO } },
+    select: { nombre: true, slug: true },
+  });
+  if (reales.length === 0) return;
+
+  if (process.env.CONFIRMO_BORRAR_TODO === "si") {
+    console.log(
+      `\n  Se van a borrar ${reales.length} fotocopiadora(s) reales porque pusiste CONFIRMO_BORRAR_TODO=si.\n`
+    );
+    return;
+  }
+
+  console.error("\n" + "=".repeat(66));
+  console.error("  FRENADO: esta base tiene fotocopiadoras de verdad");
+  console.error("=".repeat(66));
+  for (const f of reales) console.error(`    · ${f.nombre}  (${f.slug})`);
+  console.error("");
+  console.error("  La semilla BORRA todo antes de cargar los datos de prueba:");
+  console.error("  fotocopiadoras, usuarios, pedidos, cartillas y auditoría.");
+  console.error("  Si esta es tu base publicada, NO la corras.");
+  console.error("");
+  console.error("  ¿Querés datos de prueba? Usá otra base de datos.");
+  console.error("  ¿Estás seguro de borrar todo igual? Corré:");
+  console.error("      CONFIRMO_BORRAR_TODO=si npm run seed");
+  console.error("=".repeat(66) + "\n");
+  throw new Error("La semilla se detuvo para no borrar datos reales.");
+}
+
 async function main() {
+  await frenoDeSeguridad();
+
   console.log("Limpiando base...");
   await prisma.pagoSuscripcion.deleteMany();
   await prisma.suscripcion.deleteMany();

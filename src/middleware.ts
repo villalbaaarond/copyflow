@@ -29,7 +29,8 @@ export function middleware(req: NextRequest) {
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob:",
     connectSrc,
-    "object-src 'self'",
+    // La aplicación no incrusta plugins ni objetos: se bloquea del todo.
+    "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",

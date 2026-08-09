@@ -158,9 +158,33 @@ los guarda en la carpeta local `almacenamiento/`, que es lo correcto para
 desarrollo. En los dos casos el archivo **se sigue sirviendo por un endpoint que
 valida el rol**, nunca por una URL pública adivinable.
 
-Pasos: crear la base, importar el repo en la plataforma de hosting, cargar esas
-tres variables y desplegar. Después, una sola vez:
-`npx prisma migrate deploy` y `npx prisma db seed`.
+### Pasos
+
+1. Crear la base de datos (Neon o similar) y el proyecto en el hosting.
+2. Importar el repositorio y cargar las variables de la tabla de arriba.
+3. Desplegar.
+4. Una sola vez, con `DATABASE_URL` apuntando a la base publicada:
+
+```bash
+npx prisma migrate deploy    # crea las tablas
+npm run dueno                # crea TU cuenta del panel de plataforma
+```
+
+5. Entrar a `tudominio.com/dueno/ingresar`, configurar el segundo factor, y
+   desde ahí dar de alta la primera fotocopiadora de verdad.
+
+### ⚠️ Nunca corras `npm run seed` contra la base publicada
+
+La semilla **borra la base entera** antes de cargar los datos de prueba:
+fotocopiadoras, usuarios, pedidos, cartillas y auditoría. Es lo correcto en
+desarrollo y una catástrofe en producción. Además crea cuentas con la
+contraseña `demo1234`, que está escrita en este README público.
+
+Hay un freno: si la base tiene alguna fotocopiadora que no sea `central` ni
+`norte`, la semilla se detiene sola y explica por qué. Pero el freno es la
+última defensa, no la primera — simplemente no la corras en producción.
+
+Las fotocopiadoras reales se crean desde el panel `/dueno`, no con la semilla.
 
 ## El flujo central
 
