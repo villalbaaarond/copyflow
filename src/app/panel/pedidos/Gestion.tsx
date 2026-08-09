@@ -44,7 +44,7 @@ export function GestionPedidos() {
 
   // Polling suave para reflejar cambios.
   useEffect(() => {
-    const id = setInterval(cargar, 10000);
+    const id = setInterval(cargar, 25000);
     return () => clearInterval(id);
   }, [cargar]);
 
@@ -84,7 +84,7 @@ export function GestionPedidos() {
             className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               filtro === f.valor
                 ? "border-marca bg-marca-tinte text-marca"
-                : "border-borde bg-white text-secundario hover:bg-fondo"
+                : "border-borde bg-vidrio text-secundario hover:bg-vidrio"
             }`}
           >
             {f.etiqueta}
@@ -126,12 +126,13 @@ export function GestionPedidos() {
                       <ChipPedido estado={p.estado} />
                     </div>
                     <p className="mt-2 text-[15px] font-semibold text-texto">
-                      {p.cartilla?.titulo}
+                      {p.cartilla?.titulo ?? p.tituloPropio}
                     </p>
                     <p className="text-sm text-secundario">
                       {p.estudiante?.nombre} ·{" "}
-                      {p.cartilla?.materia?.curso?.nombre} ·{" "}
-                      {p.cartilla?.paginas} págs
+                      {p.cartilla
+                        ? `${p.cartilla.materia?.curso?.nombre} · ${p.cartilla.paginas} págs`
+                        : `archivo propio · ${p.paginasPropio} págs`}
                     </p>
                     <p className="mt-1 text-xs text-terciario">
                       Reservado el {formatearFecha(p.creadoEn)}
@@ -178,6 +179,17 @@ export function GestionPedidos() {
                       Confirmar pago
                     </button>
                   )}
+                  {p.archivoPropio && (
+                    <a
+                      href={`/api/pedidos/${p.id}/trabajo`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secundario"
+                    >
+                      <FileText size={15} strokeWidth={2} />
+                      Ver PDF a imprimir
+                    </a>
+                  )}
                   {p.metodoPago === "TRANSFERENCIA" && p.comprobante && (
                     <a
                       href={`/api/pedidos/${p.id}/comprobante`}
@@ -192,7 +204,7 @@ export function GestionPedidos() {
                   {esAdmin && (
                     <button
                       onClick={() => setCorreccion(p)}
-                      className="ml-auto inline-flex items-center gap-1.5 rounded-sm px-2.5 py-2 text-sm font-medium text-secundario hover:bg-fondo hover:text-texto"
+                      className="ml-auto inline-flex items-center gap-1.5 rounded-sm px-2.5 py-2 text-sm font-medium text-secundario hover:bg-vidrio hover:text-texto"
                     >
                       <Wrench size={14} strokeWidth={2} />
                       Corrección

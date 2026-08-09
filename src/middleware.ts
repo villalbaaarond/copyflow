@@ -1,19 +1,36 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 // Cabeceras de seguridad para todas las respuestas.
-export function middleware() {
+export function middleware(req: NextRequest) {
   const res = NextResponse.next();
 
-  // CSP estricta. Se permite 'unsafe-inline' en estilos por Tailwind/Next y la
-  // fuente de Google; los scripts quedan acotados a 'self'.
+  // El panel de plataforma no se indexa ni se guarda en caché en ningún lado.
+  const ruta = req.nextUrl.pathname;
+  if (ruta.startsWith("/dueno") || ruta.startsWith("/api/plataforma")) {
+    res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    res.headers.set("Cache-Control", "no-store, max-age=0");
+  }
+
+  // CSP. En producción queda estricta; en desarrollo se habilita lo que Next.js
+  // necesita para el modo dev (eval para HMR/React Refresh y el websocket de
+  // recarga en caliente). El 'unsafe-inline' de estilos es por Tailwind/Next.
+  const dev = process.env.NODE_ENV !== "production";
+  const scriptSrc = dev
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : "script-src 'self' 'unsafe-inline'";
+  const connectSrc = dev
+    ? "connect-src 'self' ws: wss:"
+    : "connect-src 'self'";
+
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    scriptSrc,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob:",
-    "connect-src 'self'",
-    "object-src 'self'",
+    connectSrc,
+    // La aplicación no incrusta plugins ni objetos: se bloquea del todo.
+    "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",

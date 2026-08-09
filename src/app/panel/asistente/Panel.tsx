@@ -117,7 +117,7 @@ export function PanelAsistente() {
                             <button
                               key={s}
                               onClick={() => preguntar(s)}
-                              className="rounded-full border border-borde bg-white px-2.5 py-1 text-xs text-secundario hover:border-marca hover:text-marca"
+                              className="rounded-full border border-borde bg-tarjeta px-2.5 py-1 text-xs text-secundario hover:border-marca hover:text-marca"
                             >
                               {s}
                             </button>
@@ -149,7 +149,7 @@ export function PanelAsistente() {
               <button
                 key={s}
                 onClick={() => preguntar(s)}
-                className="rounded-full border border-borde bg-white px-3 py-1.5 text-sm text-secundario hover:border-marca hover:text-marca"
+                className="rounded-full border border-borde bg-tarjeta px-3 py-1.5 text-sm text-secundario hover:border-marca hover:text-marca"
               >
                 {s}
               </button>

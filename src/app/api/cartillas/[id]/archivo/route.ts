@@ -16,8 +16,9 @@ export async function GET(
       throw new ErrorHttp(400, "Id inválido.");
     }
 
-    const cartilla = await prisma.cartilla.findUnique({
-      where: { id: cartillaId },
+    // El tenant va en el where: el PDF de otra fotocopiadora no es alcanzable.
+    const cartilla = await prisma.cartilla.findFirst({
+      where: { id: cartillaId, fotocopiadoraId: usuario.fotocopiadoraId },
     });
     if (!cartilla) throw new ErrorHttp(404, "La cartilla no existe.");
 

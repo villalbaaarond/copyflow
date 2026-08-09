@@ -10,11 +10,12 @@ import { esquemaUsuario } from "@/lib/validaciones";
 import { hashearContrasena } from "@/lib/password";
 import { registrarAuditoria } from "@/lib/auditoria";
 
-// GET: el admin lista los usuarios (sin hash de contraseña).
+// GET: el dueño lista los usuarios de SU fotocopiadora (sin hash de contraseña).
 export async function GET() {
   try {
-    await exigirRol("ADMIN");
+    const admin = await exigirRol("ADMIN");
     const usuarios = await prisma.usuario.findMany({
+      where: { fotocopiadoraId: admin.fotocopiadoraId },
       select: { id: true, nombre: true, email: true, rol: true, creadoEn: true },
       orderBy: { creadoEn: "asc" },
     });
@@ -24,16 +25,18 @@ export async function GET() {
   }
 }
 
-// POST: el admin crea un usuario y le asigna rol (único lugar para asignar roles).
+// POST: el dueño crea un usuario en SU fotocopiadora y le asigna rol.
+// Este es el único lugar donde se asigna un rol a mano.
 export async function POST(req: Request) {
   try {
     verificarOrigin(req);
     const admin = await exigirRol("ADMIN");
     const datos = esquemaUsuario.parse(await req.json());
+    const email = datos.email.trim().toLowerCase();
 
-    const existe = await prisma.usuario.findUnique({
-      where: { email: datos.email },
-    });
+    // El email es único en toda la plataforma: cada persona pertenece a una
+    // sola fotocopiadora, así el login resuelve el tenant sin ambigüedad.
+    const existe = await prisma.usuario.findUnique({ where: { email } });
     if (existe) throw new ErrorHttp(409, "Ya existe un usuario con ese email.");
 
     const hash = await hashearContrasena(datos.contrasena);
@@ -41,14 +44,16 @@ export async function POST(req: Request) {
       const u = await tx.usuario.create({
         data: {
           nombre: datos.nombre,
-          email: datos.email,
+          email,
           hashContrasena: hash,
           rol: datos.rol,
+          fotocopiadoraId: admin.fotocopiadoraId,
         },
         select: { id: true, nombre: true, email: true, rol: true, creadoEn: true },
       });
       await registrarAuditoria(
         admin.id,
+        admin.fotocopiadoraId,
         `Creó al usuario ${u.email} con rol ${u.rol}`,
         tx
       );

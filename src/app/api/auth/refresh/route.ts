@@ -29,8 +29,9 @@ export async function POST(req: Request) {
 
     const usuario = await prisma.usuario.findUnique({
       where: { id: rotado.usuarioId },
+      include: { fotocopiadora: { select: { activa: true } } },
     });
-    if (!usuario) {
+    if (!usuario || !usuario.fotocopiadora.activa) {
       await limpiarCookiesAuth();
       return NextResponse.json({ error: "Sesión inválida." }, { status: 401 });
     }
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
       sub: String(usuario.id),
       rol: usuario.rol,
       nombre: usuario.nombre,
+      fot: usuario.fotocopiadoraId,
     });
     await setCookieAcceso(acceso);
     await setCookieRefresh(rotado.token);

@@ -103,7 +103,7 @@ export function SubirCartilla() {
           }}
           onClick={() => inputRef.current?.click()}
           className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed px-6 py-10 text-center transition-colors ${
-            arrastrando ? "border-marca bg-marca-tinte" : "border-borde bg-white hover:border-marca"
+            arrastrando ? "border-marca bg-marca-tinte" : "border-borde bg-tarjeta hover:border-marca"
           }`}
         >
           <input
@@ -128,7 +128,7 @@ export function SubirCartilla() {
                   e.stopPropagation();
                   setArchivo(null);
                 }}
-                className="rounded-sm p-1 text-terciario hover:bg-fondo hover:text-texto"
+                className="rounded-sm p-1 text-terciario hover:bg-vidrio hover:text-texto"
               >
                 <X size={18} strokeWidth={2} />
               </button>
@@ -173,7 +173,9 @@ export function SubirCartilla() {
               disabled={!cursoId}
               required
             >
-              <option value="">Elegí una materia</option>
+              <option value="">
+                {cursoId ? "Elegí una materia" : "Primero elegí un curso"}
+              </option>
               {materias.map((m) => (
                 <option key={m.id} value={m.id}>{m.nombre}</option>
               ))}

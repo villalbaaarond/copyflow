@@ -10,12 +10,18 @@ import {
 import { esquemaCurso } from "@/lib/validaciones";
 import { registrarAuditoria } from "@/lib/auditoria";
 
-// GET: lista de cursos con materias. Cualquier usuario autenticado (para filtros).
+// GET: cursos con materias de la fotocopiadora del usuario autenticado.
 export async function GET() {
   try {
-    await exigirUsuario();
+    const usuario = await exigirUsuario();
     const cursos = await prisma.curso.findMany({
-      include: { materias: { orderBy: { nombre: "asc" } } },
+      where: { fotocopiadoraId: usuario.fotocopiadoraId },
+      include: {
+        materias: {
+          where: { fotocopiadoraId: usuario.fotocopiadoraId },
+          orderBy: { nombre: "asc" },
+        },
+      },
       orderBy: { id: "asc" },
     });
     return NextResponse.json({ cursos });
@@ -24,21 +30,35 @@ export async function GET() {
   }
 }
 
-// POST: el admin crea un curso.
+// POST: el dueño crea un curso en SU fotocopiadora.
 export async function POST(req: Request) {
   try {
     verificarOrigin(req);
     const usuario = await exigirRol("ADMIN");
     const datos = esquemaCurso.parse(await req.json());
 
-    const existe = await prisma.curso.findUnique({
-      where: { nombre: datos.nombre },
+    // El nombre es único por tenant: dos fotocopiadoras pueden tener "1° Año".
+    const existe = await prisma.curso.findFirst({
+      where: {
+        nombre: datos.nombre,
+        fotocopiadoraId: usuario.fotocopiadoraId,
+      },
     });
     if (existe) throw new ErrorHttp(409, "Ya existe un curso con ese nombre.");
 
     const curso = await prisma.$transaction(async (tx) => {
-      const c = await tx.curso.create({ data: { nombre: datos.nombre } });
-      await registrarAuditoria(usuario.id, `Creó el curso "${c.nombre}"`, tx);
+      const c = await tx.curso.create({
+        data: {
+          nombre: datos.nombre,
+          fotocopiadoraId: usuario.fotocopiadoraId,
+        },
+      });
+      await registrarAuditoria(
+        usuario.id,
+        usuario.fotocopiadoraId,
+        `Creó el curso "${c.nombre}"`,
+        tx
+      );
       return c;
     });
 

@@ -1,12 +1,18 @@
-// CopyFlow — esquema de datos.
-// SQLite en desarrollo; para PostgreSQL solo cambiar el datasource.
+// CopyFlow — esquema de datos (SaaS multi-tenant).
+// PostgreSQL. La conexion sale de DATABASE_URL.
+//
+// AISLAMIENTO: toda tabla con datos de negocio lleva fotocopiadoraId. Ninguna
+// consulta de la aplicación puede omitirlo: los helpers de auth siempre
+// devuelven el tenant del usuario autenticado y cada query filtra por él.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  // PostgreSQL en desarrollo y en produccion: la misma base en los dos lados,
+  // para que nada "funcione en mi maquina y falle publicado".
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -35,32 +41,83 @@ enum MetodoPago {
   TRANSFERENCIA
 }
 
-model Usuario {
-  id            Int      @id @default(autoincrement())
-  nombre        String
-  email         String   @unique
-  hashContrasena String
-  rol           Rol
-  creadoEn      DateTime @default(now())
+// Estado de la suscripcion mensual que la fotocopiadora le paga a la plataforma.
+enum EstadoSuscripcion {
+  PRUEBA
+  ACTIVA
+  VENCIDA
+  CANCELADA
+}
 
+// El tenant: cada fotocopiadora suscripta a la plataforma.
+model Fotocopiadora {
+  id             Int      @id @default(autoincrement())
+  nombre         String
+  // Identificador corto que usan los usuarios para registrarse (ej: "central").
+  slug           String   @unique
+  // Dominio institucional docente (Filtro 1 del registro). Ej: "colegio.edu.ar".
+  dominioDocente String?
+  activa         Boolean  @default(true)
+  creadoEn       DateTime @default(now())
+
+  suscripcion   Suscripcion?
+  usuarios      Usuario[]
+  cursos        Curso[]
+  materias      Materia[]
   cartillas     Cartilla[]
   pedidos       Pedido[]
   auditorias    Auditoria[]
-  sesiones      Sesion[]
+  pines         PinProfesor[]
+  configuracion Configuracion?
+}
+
+model Usuario {
+  id             Int      @id @default(autoincrement())
+  nombre         String
+  // Único global: cada persona pertenece a una sola fotocopiadora, así el
+  // login por email resuelve el tenant sin pedirlo aparte.
+  email          String   @unique
+  hashContrasena String
+  rol            Rol
+  creadoEn       DateTime @default(now())
+
+  fotocopiadora   Fotocopiadora @relation(fields: [fotocopiadoraId], references: [id], onDelete: Restrict)
+  fotocopiadoraId Int
+
+  cartillas  Cartilla[]
+  pedidos    Pedido[]
+  auditorias Auditoria[]
+  sesiones   Sesion[]
+  pinesUsados PinProfesor[] @relation("PinUsadoPor")
+
+  @@index([fotocopiadoraId])
 }
 
 model Curso {
   id       Int       @id @default(autoincrement())
-  nombre   String    @unique
+  nombre   String
   materias Materia[]
+
+  fotocopiadora   Fotocopiadora @relation(fields: [fotocopiadoraId], references: [id], onDelete: Restrict)
+  fotocopiadoraId Int
+
+  @@unique([fotocopiadoraId, nombre])
+  @@index([fotocopiadoraId])
 }
 
 model Materia {
   id        Int        @id @default(autoincrement())
   nombre    String
+  // División/sección opcional (ej: "3ro A").
+  division  String?
   curso     Curso      @relation(fields: [cursoId], references: [id], onDelete: Restrict)
   cursoId   Int
   cartillas Cartilla[]
+
+  fotocopiadora   Fotocopiadora @relation(fields: [fotocopiadoraId], references: [id], onDelete: Restrict)
+  fotocopiadoraId Int
+
+  @@index([fotocopiadoraId])
 }
 
 model Cartilla {
@@ -77,14 +134,25 @@ model Cartilla {
   materiaId     Int
   creadoEn      DateTime       @default(now())
 
-  pedidos       Pedido[]
+  fotocopiadora   Fotocopiadora @relation(fields: [fotocopiadoraId], references: [id], onDelete: Restrict)
+  fotocopiadoraId Int
+
+  pedidos Pedido[]
+
+  @@index([fotocopiadoraId])
 }
 
 model Pedido {
   id              Int          @id @default(autoincrement())
-  numero          String       @unique
-  cartilla        Cartilla     @relation(fields: [cartillaId], references: [id], onDelete: Restrict)
-  cartillaId      Int
+  numero          String
+  // Un pedido nace de una cartilla aprobada (material de catedra) O de un PDF
+  // que sube el propio estudiante. Por eso la cartilla es opcional y, cuando
+  // no esta, viajan los datos del archivo propio.
+  cartilla        Cartilla?    @relation(fields: [cartillaId], references: [id], onDelete: Restrict)
+  cartillaId      Int?
+  archivoPropio   String?
+  tituloPropio    String?
+  paginasPropio   Int?
   estudiante      Usuario      @relation(fields: [estudianteId], references: [id], onDelete: Restrict)
   estudianteId    Int
   estado          EstadoPedido @default(PENDIENTE)
@@ -94,13 +162,23 @@ model Pedido {
   precioCongelado Int
   horarioRetiro   String?
   creadoEn        DateTime     @default(now())
+
+  fotocopiadora   Fotocopiadora @relation(fields: [fotocopiadoraId], references: [id], onDelete: Restrict)
+  fotocopiadoraId Int
+
+  // La numeración P-0001 es por fotocopiadora, no global.
+  @@unique([fotocopiadoraId, numero])
+  @@index([fotocopiadoraId])
 }
 
 model Configuracion {
-  id              Int    @id @default(1)
+  id              Int    @id @default(autoincrement())
   precioPorPagina Int    @default(50)
   alias           String @default("copyflow.escuela")
   horario         String @default("Lunes a viernes de 8 a 18 hs")
+
+  fotocopiadora   Fotocopiadora @relation(fields: [fotocopiadoraId], references: [id], onDelete: Cascade)
+  fotocopiadoraId Int           @unique
 }
 
 model Auditoria {
@@ -109,16 +187,116 @@ model Auditoria {
   usuarioId Int
   accion    String
   creadoEn  DateTime @default(now())
+
+  fotocopiadora   Fotocopiadora @relation(fields: [fotocopiadoraId], references: [id], onDelete: Restrict)
+  fotocopiadoraId Int
+
+  @@index([fotocopiadoraId])
+}
+
+// PIN de 4 dígitos que genera el dueño para habilitar a un profesor real
+// (Filtro 2 del registro). De un solo uso, con vencimiento y por tenant.
+model PinProfesor {
+  id       Int      @id @default(autoincrement())
+  codigo   String
+  // Referencia para el dueño (ej: "Prof. Gómez - Historia").
+  etiqueta String?
+  usado    Boolean  @default(false)
+  expiraEn DateTime
+  creadoEn DateTime @default(now())
+
+  usadoPor   Usuario? @relation("PinUsadoPor", fields: [usadoPorId], references: [id], onDelete: SetNull)
+  usadoPorId Int?
+
+  fotocopiadora   Fotocopiadora @relation(fields: [fotocopiadoraId], references: [id], onDelete: Cascade)
+  fotocopiadoraId Int
+
+  @@index([fotocopiadoraId])
+}
+
+// Suscripcion mensual de cada fotocopiadora a la plataforma (modelo SaaS).
+// Mientras este vigente, el tenant opera normal; al vencer queda bloqueado.
+model Suscripcion {
+  id             Int               @id @default(autoincrement())
+  estado         EstadoSuscripcion @default(PRUEBA)
+  // Precio mensual en pesos, congelado al contratar.
+  precioMensual  Int               @default(15000)
+  // Fin del periodo pago en curso: la fecha que define si esta vigente.
+  vigenteHasta   DateTime
+  creadoEn       DateTime          @default(now())
+
+  fotocopiadora   Fotocopiadora @relation(fields: [fotocopiadoraId], references: [id], onDelete: Cascade)
+  fotocopiadoraId Int           @unique
+
+  pagos PagoSuscripcion[]
+}
+
+// Historial de pagos de la suscripcion. Solo insercion, como la auditoria.
+model PagoSuscripcion {
+  id            Int      @id @default(autoincrement())
+  monto         Int
+  // Meses que suma este pago al periodo.
+  meses         Int      @default(1)
+  // Como se registro: MANUAL (transferencia verificada) o el id de la pasarela.
+  referencia    String?
+  periodoHasta  DateTime
+  creadoEn      DateTime @default(now())
+
+  suscripcion   Suscripcion @relation(fields: [suscripcionId], references: [id], onDelete: Cascade)
+  suscripcionId Int
+
+  @@index([suscripcionId])
+}
+
+// ---------------------------------------------------------------------------
+// DUEÑO DE LA PLATAFORMA (mantenimiento de TODAS las fotocopiadoras).
+//
+// Deliberadamente NO es un Usuario ni un rol más. Es una tabla aparte, con su
+// propia contraseña, su propio segundo factor y su propio secreto de firma.
+// Consecuencia: ningún token de una fotocopiadora puede valer acá aunque
+// alguien logre cambiarse el rol, y ninguna consulta de tenant puede devolver
+// datos de plataforma. Son dos mundos separados que no se tocan.
+// ---------------------------------------------------------------------------
+model DuenoPlataforma {
+  id             Int      @id @default(autoincrement())
+  nombre         String
+  // Además de existir acá, el email tiene que coincidir con EMAIL_DUENO (una
+  // variable de entorno). Sin las dos cosas no se entra: si alguien llegara a
+  // insertar una fila en esta tabla, igual no le sirve.
+  email          String   @unique
+  hashContrasena String
+  // Secreto del segundo factor (TOTP, tipo Google Authenticator). Mientras no
+  // esté activo, el panel no se abre: la contraseña sola no alcanza.
+  totpSecreto    String?
+  totpActivo     Boolean  @default(false)
+  // Último paso de 30 s ya usado: impide reusar un código robado.
+  totpUltimoPaso Int?
+  ultimoAcceso   DateTime?
+  creadoEn       DateTime @default(now())
+}
+
+// Auditoría del panel de plataforma, separada de la de cada fotocopiadora
+// para que ningún tenant pueda leerla. Solo inserción, incluidos los intentos
+// fallidos de ingreso.
+model AuditoriaPlataforma {
+  id       Int      @id @default(autoincrement())
+  email    String
+  accion   String
+  ip       String?
+  exito    Boolean  @default(true)
+  creadoEn DateTime @default(now())
+
+  @@index([creadoEn])
 }
 
 // Refresh tokens persistidos para permitir rotación e invalidación (logout).
 // Se guarda solo el hash del token, nunca el token en claro.
 model Sesion {
-  id           String   @id @default(uuid())
-  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  usuarioId    Int
-  hashToken    String   @unique
-  expiraEn     DateTime
-  revocada     Boolean  @default(false)
-  creadoEn     DateTime @default(now())
+  id        String   @id @default(uuid())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId Int
+  hashToken String   @unique
+  expiraEn  DateTime
+  revocada  Boolean  @default(false)
+  creadoEn  DateTime @default(now())
 }

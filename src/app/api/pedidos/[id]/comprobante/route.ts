@@ -16,13 +16,20 @@ import {
   tipoMime,
 } from "@/lib/archivos";
 
-async function cargarPedido(params: Promise<{ id: string }>) {
+// Carga el pedido acotado al tenant del usuario: un comprobante de otra
+// fotocopiadora no es alcanzable ni siquiera conociendo el id.
+async function cargarPedido(
+  params: Promise<{ id: string }>,
+  fotocopiadoraId: number
+) {
   const { id } = await params;
   const pedidoId = Number(id);
   if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
     throw new ErrorHttp(400, "Id inválido.");
   }
-  const pedido = await prisma.pedido.findUnique({ where: { id: pedidoId } });
+  const pedido = await prisma.pedido.findFirst({
+    where: { id: pedidoId, fotocopiadoraId },
+  });
   if (!pedido) throw new ErrorHttp(404, "El pedido no existe.");
   return pedido;
 }
@@ -35,7 +42,7 @@ export async function POST(
   try {
     verificarOrigin(req);
     const usuario = await exigirUsuario();
-    const pedido = await cargarPedido(params);
+    const pedido = await cargarPedido(params, usuario.fotocopiadoraId);
 
     if (usuario.rol !== "ESTUDIANTE" || pedido.estudianteId !== usuario.id) {
       throw new ErrorHttp(403, "No tenés permiso sobre este pedido.");
@@ -68,6 +75,7 @@ export async function POST(
       });
       await registrarAuditoria(
         usuario.id,
+        usuario.fotocopiadoraId,
         `Subió el comprobante del pedido ${pedido.numero}`,
         tx
       );
@@ -87,7 +95,7 @@ export async function GET(
 ) {
   try {
     const usuario = await exigirUsuario();
-    const pedido = await cargarPedido(params);
+    const pedido = await cargarPedido(params, usuario.fotocopiadoraId);
 
     const esFotocopiadora =
       usuario.rol === "ADMIN" || usuario.rol === "EMPLEADO";

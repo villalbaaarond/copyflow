@@ -8,6 +8,8 @@ export interface UsuarioActual {
   id: number;
   rol: Rol;
   nombre: string;
+  // Tenant del usuario. Toda consulta de datos DEBE filtrar por este valor.
+  fotocopiadoraId: number;
 }
 
 // Lee la cookie de acceso y devuelve el usuario autenticado, o null.
@@ -21,6 +23,7 @@ export async function obtenerUsuario(): Promise<UsuarioActual | null> {
     id: Number(payload.sub),
     rol: payload.rol,
     nombre: payload.nombre,
+    fotocopiadoraId: payload.fot,
   };
 }
 

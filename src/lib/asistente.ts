@@ -30,16 +30,18 @@ function incluyeAlguna(texto: string, palabras: string[]): boolean {
 }
 
 // Interpreta la pregunta por palabras clave y responde con datos reales.
+// Todo se calcula SOLO sobre la fotocopiadora que pregunta.
 // PROHIBIDO inventar: todo sale de la base.
 export async function responderAsistente(
-  pregunta: string
+  pregunta: string,
+  fotocopiadoraId: number
 ): Promise<RespuestaAsistente> {
   const t = normalizar(pregunta);
 
   // Qué imprimir hoy: pedidos por imprimir (no entregados), agrupados por cartilla.
   if (incluyeAlguna(t, ["imprimo", "imprimir", "hoy", "cola de impresion"])) {
     const pedidos = await prisma.pedido.findMany({
-      where: { estado: { in: ["PENDIENTE", "PREPARANDO"] } },
+      where: { fotocopiadoraId, estado: { in: ["PENDIENTE", "PREPARANDO"] } },
       include: { cartilla: { select: { titulo: true, paginas: true } } },
     });
     if (pedidos.length === 0) {
@@ -52,12 +54,12 @@ export async function responderAsistente(
     }
     const grupos = new Map<string, { copias: number; paginas: number }>();
     for (const p of pedidos) {
-      const g = grupos.get(p.cartilla.titulo) ?? {
-        copias: 0,
-        paginas: p.cartilla.paginas,
-      };
+      // El pedido puede venir de una cartilla o de un PDF propio del estudiante.
+      const titulo = p.cartilla?.titulo ?? p.tituloPropio ?? "Trabajo sin título";
+      const paginas = p.cartilla?.paginas ?? p.paginasPropio ?? 0;
+      const g = grupos.get(titulo) ?? { copias: 0, paginas };
       g.copias += 1;
-      grupos.set(p.cartilla.titulo, g);
+      grupos.set(titulo, g);
     }
     const items = [...grupos.entries()].map(
       ([titulo, g]) =>
@@ -74,7 +76,9 @@ export async function responderAsistente(
 
   // Pedidos pendientes.
   if (incluyeAlguna(t, ["pendiente", "pendientes"])) {
-    const n = await prisma.pedido.count({ where: { estado: "PENDIENTE" } });
+    const n = await prisma.pedido.count({
+      where: { fotocopiadoraId, estado: "PENDIENTE" },
+    });
     return {
       titulo: "Pedidos pendientes",
       texto:
@@ -90,6 +94,7 @@ export async function responderAsistente(
   if (incluyeAlguna(t, ["mas pedida", "mas pedido", "popular", "mas reservada"])) {
     const agrupado = await prisma.pedido.groupBy({
       by: ["cartillaId"],
+      where: { fotocopiadoraId, cartillaId: { not: null } },
       _count: { cartillaId: true },
       orderBy: { _count: { cartillaId: "desc" } },
       take: 1,
@@ -102,10 +107,13 @@ export async function responderAsistente(
         sugerencias: SUGERENCIAS,
       };
     }
-    const cartilla = await prisma.cartilla.findUnique({
-      where: { id: agrupado[0].cartillaId },
-      select: { titulo: true },
-    });
+    const idMasPedida = agrupado[0].cartillaId;
+    const cartilla = idMasPedida
+      ? await prisma.cartilla.findFirst({
+          where: { id: idMasPedida, fotocopiadoraId },
+          select: { titulo: true },
+        })
+      : null;
     return {
       titulo: "Cartilla más pedida",
       texto: `La más pedida es "${cartilla?.titulo}" con ${agrupado[0]._count.cartillaId} ${agrupado[0]._count.cartillaId === 1 ? "pedido" : "pedidos"}.`,
@@ -119,7 +127,7 @@ export async function responderAsistente(
     const desde = new Date();
     desde.setDate(desde.getDate() - 7);
     const entregados = await prisma.pedido.findMany({
-      where: { estado: "ENTREGADA", creadoEn: { gte: desde } },
+      where: { fotocopiadoraId, estado: "ENTREGADA", creadoEn: { gte: desde } },
       select: { precioCongelado: true },
     });
     const total = entregados.reduce((a, p) => a + p.precioCongelado, 0);
@@ -134,7 +142,10 @@ export async function responderAsistente(
   // Pedidos por entregar.
   if (incluyeAlguna(t, ["por entregar", "entregar", "falta entregar", "quedan"])) {
     const n = await prisma.pedido.count({
-      where: { estado: { in: ["PENDIENTE", "PREPARANDO", "LISTA"] } },
+      where: {
+        fotocopiadoraId,
+        estado: { in: ["PENDIENTE", "PREPARANDO", "LISTA"] },
+      },
     });
     return {
       titulo: "Pedidos por entregar",
@@ -150,7 +161,7 @@ export async function responderAsistente(
   // Cartillas en revisión.
   if (incluyeAlguna(t, ["revision", "aprobar", "revisar", "pendientes de aprobar"])) {
     const cartillas = await prisma.cartilla.findMany({
-      where: { estado: "REVISION" },
+      where: { fotocopiadoraId, estado: "REVISION" },
       select: { titulo: true, profesor: { select: { nombre: true } } },
     });
     if (cartillas.length === 0) {

@@ -25,8 +25,8 @@ export async function POST(
 
     const { decision } = esquemaRevisionCartilla.parse(await req.json());
 
-    const cartilla = await prisma.cartilla.findUnique({
-      where: { id: cartillaId },
+    const cartilla = await prisma.cartilla.findFirst({
+      where: { id: cartillaId, fotocopiadoraId: usuario.fotocopiadoraId },
     });
     if (!cartilla) throw new ErrorHttp(404, "La cartilla no existe.");
     if (cartilla.estado !== "REVISION") {
@@ -40,6 +40,7 @@ export async function POST(
       });
       await registrarAuditoria(
         usuario.id,
+        usuario.fotocopiadoraId,
         `${decision === "APROBADA" ? "Aprobó" : "Rechazó"} la cartilla "${c.titulo}"`,
         tx
       );

@@ -61,7 +61,7 @@ export function RevisionCartillas() {
             className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               filtro === f.valor
                 ? "border-marca bg-marca-tinte text-marca"
-                : "border-borde bg-white text-secundario hover:bg-fondo"
+                : "border-borde bg-vidrio text-secundario hover:bg-vidrio"
             }`}
           >
             {f.etiqueta}
@@ -132,7 +132,7 @@ export function RevisionCartillas() {
                     <button
                       onClick={() => revisar(c, "RECHAZADA")}
                       disabled={ocupado === c.id}
-                      className="inline-flex items-center gap-1.5 rounded-sm border border-[#F7D4D4] bg-estado-rechazadaBg px-3.5 py-2.5 text-sm font-semibold text-estado-rechazadaText transition-colors hover:bg-[#FBE0E0] disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-sm border border-estado-rechazadaBorde bg-estado-rechazadaBg px-3.5 py-2.5 text-sm font-semibold text-estado-rechazadaText transition-colors hover:bg-[rgba(224,140,140,0.18)] disabled:opacity-50"
                     >
                       <X size={15} strokeWidth={2.2} />
                       Rechazar

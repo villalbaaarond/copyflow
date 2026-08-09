@@ -31,6 +31,13 @@ export async function PATCH(
     }
 
     const { rol } = esquema.parse(await req.json());
+
+    // Solo usuarios de la propia fotocopiadora: nadie toca los roles de otro tenant.
+    const objetivo = await prisma.usuario.findFirst({
+      where: { id: usuarioId, fotocopiadoraId: admin.fotocopiadoraId },
+    });
+    if (!objetivo) throw new ErrorHttp(404, "El usuario no existe.");
+
     const usuario = await prisma.$transaction(async (tx) => {
       const u = await tx.usuario.update({
         where: { id: usuarioId },
@@ -39,6 +46,7 @@ export async function PATCH(
       });
       await registrarAuditoria(
         admin.id,
+        admin.fotocopiadoraId,
         `Cambió el rol de ${u.email} a ${rol}`,
         tx
       );

@@ -31,7 +31,7 @@ export function MisPedidos({ activos }: { activos: boolean }) {
   // Polling para ver los cambios de estado en vivo (solo en pedidos activos).
   useEffect(() => {
     if (!activos) return;
-    const id = setInterval(cargar, 8000);
+    const id = setInterval(cargar, 25000);
     return () => clearInterval(id);
   }, [cargar, activos]);
 
@@ -41,7 +41,7 @@ export function MisPedidos({ activos }: { activos: boolean }) {
 
   return (
     <>
-      <h1 className="mb-5 text-xl font-bold tracking-[-0.025em] text-texto">
+      <h1 className="display mb-5 text-[24px] text-texto">
         {activos ? "Mis Pedidos" : "Historial"}
       </h1>
 
@@ -74,9 +74,11 @@ export function MisPedidos({ activos }: { activos: boolean }) {
             <div className="flex items-start justify-between">
               <div className="min-w-0">
                 <span className="mono text-sm font-bold text-marca">{p.numero}</span>
-                <p className="mt-1 text-[15px] font-semibold text-texto">{p.cartilla?.titulo}</p>
+                <p className="mt-1 text-[15px] font-semibold text-texto">
+                  {p.cartilla?.titulo ?? p.tituloPropio}
+                </p>
                 <p className="text-xs text-terciario">
-                  {p.cartilla?.materia?.nombre} · {formatearFecha(p.creadoEn)}
+                  {p.cartilla?.materia?.nombre ?? "Mi archivo"} · {formatearFecha(p.creadoEn)}
                 </p>
               </div>
               <ChipPedido estado={p.estado} />
@@ -123,7 +125,7 @@ function LineaProgreso({ estado }: { estado: EstadoPedido }) {
           <div key={paso} className="flex flex-1 items-center last:flex-none">
             <span
               className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
-                i <= idx ? "bg-marca text-white" : "bg-bordeSuave text-terciario"
+                i <= idx ? "bg-marca text-fondo" : "bg-bordeSuave text-terciario"
               }`}
             >
               {i + 1}

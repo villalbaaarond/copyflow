@@ -1,37 +1,38 @@
-// Logo de CopyFlow: cubo redondeado con gradiente índigo 135°.
+// Logo de CopyFlow: tres cuadrados redondeados superpuestos (hojas apiladas)
+// en verde esmeralda, como en la identidad de referencia.
 
 export function Logo({ tamano = 32 }: { tamano?: number }) {
   return (
-    <svg width={tamano} height={tamano} viewBox="0 0 32 32" fill="none" aria-hidden>
-      <defs>
-        <linearGradient id="cf-logo" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#7C7CE8" />
-          <stop offset="1" stopColor="#4A4AC6" />
-        </linearGradient>
-      </defs>
-      <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#cf-logo)" />
-      <path
-        d="M11 11.5h7M11 16h10M11 20.5h6"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+    <svg
+      width={tamano}
+      height={tamano}
+      viewBox="0 0 40 40"
+      fill="none"
+      aria-hidden
+    >
+      <rect x="15.5" y="4.5" width="20" height="20" rx="5.5" stroke="#6DC47F" strokeWidth="2.4" />
+      <rect x="9.5" y="10.5" width="20" height="20" rx="5.5" stroke="#4CA95E" strokeWidth="2.4" />
+      <rect x="3.5" y="16.5" width="20" height="20" rx="5.5" stroke="#3E8B4D" strokeWidth="2.4" />
     </svg>
   );
 }
 
+// Logotipo: "Copy" en serif regular + "Flow" en serif itálica.
 export function MarcaCompleta({ tamano = 32 }: { tamano?: number }) {
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-3">
       <Logo tamano={tamano} />
-      <span className="text-[17px] font-bold tracking-[-0.03em] text-texto">
-        CopyFlow
+      <span
+        className="display text-texto"
+        style={{ fontSize: tamano * 0.82, lineHeight: 1 }}
+      >
+        Copy<span className="italic">Flow</span>
       </span>
     </div>
   );
 }
 
-// Avatar con iniciales sobre fondo de gradiente índigo.
+// Avatar con iniciales sobre fondo de gradiente verde.
 export function Avatar({ nombre, tamano = 36 }: { nombre: string; tamano?: number }) {
   const iniciales = nombre
     .split(" ")
@@ -41,12 +42,13 @@ export function Avatar({ nombre, tamano = 36 }: { nombre: string; tamano?: numbe
     .toUpperCase();
   return (
     <div
-      className="flex shrink-0 items-center justify-center rounded-full font-semibold text-white"
+      className="flex shrink-0 items-center justify-center rounded-full font-semibold"
       style={{
         width: tamano,
         height: tamano,
         fontSize: tamano * 0.38,
-        background: "linear-gradient(135deg, #7C7CE8 0%, #4A4AC6 100%)",
+        color: "#0C1210",
+        background: "linear-gradient(135deg, #6DC47F 0%, #3E8B4D 100%)",
       }}
       aria-hidden
     >

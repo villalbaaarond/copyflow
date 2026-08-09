@@ -22,8 +22,8 @@ export async function DELETE(
       throw new ErrorHttp(400, "Id inválido.");
     }
 
-    const materia = await prisma.materia.findUnique({
-      where: { id: materiaId },
+    const materia = await prisma.materia.findFirst({
+      where: { id: materiaId, fotocopiadoraId: usuario.fotocopiadoraId },
       include: { _count: { select: { cartillas: true } } },
     });
     if (!materia) throw new ErrorHttp(404, "La materia no existe.");
@@ -35,6 +35,7 @@ export async function DELETE(
       await tx.materia.delete({ where: { id: materiaId } });
       await registrarAuditoria(
         usuario.id,
+        usuario.fotocopiadoraId,
         `Borró la materia "${materia.nombre}"`,
         tx
       );

@@ -16,18 +16,19 @@ import {
   guardarArchivo,
 } from "@/lib/archivos";
 
-// GET: lista de cartillas según rol.
+// GET: lista de cartillas según rol, SIEMPRE acotada a la fotocopiadora del usuario.
 // - profesor: solo las propias
-// - admin/empleado: todas (con foco en revisión)
-// - estudiante: solo APROBADAS (filtrables por materia/curso)
+// - admin/empleado: todas las de su fotocopiadora
+// - estudiante: solo APROBADAS de su fotocopiadora
 export async function GET(req: Request) {
   try {
     const usuario = await exigirUsuario();
     const { searchParams } = new URL(req.url);
+    const tenant = { fotocopiadoraId: usuario.fotocopiadoraId };
 
     if (usuario.rol === "PROFESOR") {
       const cartillas = await prisma.cartilla.findMany({
-        where: { profesorId: usuario.id },
+        where: { ...tenant, profesorId: usuario.id },
         include: { materia: { include: { curso: true } } },
         orderBy: { creadoEn: "desc" },
       });
@@ -37,9 +38,12 @@ export async function GET(req: Request) {
     if (usuario.rol === "ADMIN" || usuario.rol === "EMPLEADO") {
       const estado = searchParams.get("estado");
       const cartillas = await prisma.cartilla.findMany({
-        where: estado
-          ? { estado: estado as "REVISION" | "APROBADA" | "RECHAZADA" }
-          : undefined,
+        where: {
+          ...tenant,
+          ...(estado
+            ? { estado: estado as "REVISION" | "APROBADA" | "RECHAZADA" }
+            : {}),
+        },
         include: {
           materia: { include: { curso: true } },
           profesor: { select: { id: true, nombre: true } },
@@ -55,6 +59,7 @@ export async function GET(req: Request) {
     const buscar = searchParams.get("buscar")?.trim();
     const cartillas = await prisma.cartilla.findMany({
       where: {
+        ...tenant,
         estado: "APROBADA",
         ...(materiaId ? { materiaId: Number(materiaId) } : {}),
         ...(cursoId ? { materia: { cursoId: Number(cursoId) } } : {}),
@@ -66,7 +71,9 @@ export async function GET(req: Request) {
       },
       orderBy: { creadoEn: "desc" },
     });
-    const config = await prisma.configuracion.findFirst();
+    const config = await prisma.configuracion.findUnique({
+      where: { fotocopiadoraId: usuario.fotocopiadoraId },
+    });
     const precio = config?.precioPorPagina ?? 50;
     return NextResponse.json({
       cartillas: cartillas.map((c) => ({ ...c, precioEstimado: c.paginas * precio })),
@@ -103,8 +110,10 @@ export async function POST(req: Request) {
       throw new ErrorHttp(400, "El archivo no es un PDF válido.");
     }
 
-    const materia = await prisma.materia.findUnique({
-      where: { id: datos.materiaId },
+    // La materia tiene que ser de la misma fotocopiadora: si no, no existe
+    // para este usuario (evita cruzar datos entre tenants).
+    const materia = await prisma.materia.findFirst({
+      where: { id: datos.materiaId, fotocopiadoraId: usuario.fotocopiadoraId },
     });
     if (!materia) throw new ErrorHttp(400, "La materia no existe.");
 
@@ -121,10 +130,12 @@ export async function POST(req: Request) {
           estado: "REVISION",
           profesorId: usuario.id,
           materiaId: datos.materiaId,
+          fotocopiadoraId: usuario.fotocopiadoraId,
         },
       });
       await registrarAuditoria(
         usuario.id,
+        usuario.fotocopiadoraId,
         `Subió la cartilla "${datos.titulo}" (queda en revisión)`,
         tx
       );

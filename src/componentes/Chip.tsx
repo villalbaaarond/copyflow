@@ -8,20 +8,24 @@ interface Estilo {
   etiqueta: string;
 }
 
+// Sobre fondo oscuro los estados usan tintes translúcidos: color de texto vivo,
+// fondo apenas teñido y borde tonal. Nunca colores saturados o neón.
 const PEDIDO: Record<EstadoPedido, Estilo> = {
-  PENDIENTE: { etiqueta: "Pendiente", texto: "#B45309", bg: "#FEF6E7", borde: "#F3E2C0", punto: "#B45309" },
-  PREPARANDO: { etiqueta: "Preparando", texto: "#2563EB", bg: "#EDF3FE", borde: "#D6E4FB", punto: "#2563EB" },
-  LISTA: { etiqueta: "Lista para retirar", texto: "#15803D", bg: "#EBF7EF", borde: "#CFEBD9", punto: "#15803D" },
-  ENTREGADA: { etiqueta: "Entregada", texto: "#52525B", bg: "#F4F4F5", borde: "#E4E4E7", punto: "#52525B" },
+  PENDIENTE: { etiqueta: "Pendiente", texto: "#E0B270", bg: "rgba(224,178,112,0.10)", borde: "rgba(224,178,112,0.22)", punto: "#E0B270" },
+  PREPARANDO: { etiqueta: "Preparando", texto: "#84AEDC", bg: "rgba(132,174,220,0.10)", borde: "rgba(132,174,220,0.22)", punto: "#84AEDC" },
+  LISTA: { etiqueta: "Lista para retirar", texto: "#6DC47F", bg: "rgba(76,169,94,0.12)", borde: "rgba(76,169,94,0.26)", punto: "#6DC47F" },
+  ENTREGADA: { etiqueta: "Entregada", texto: "#9AA0A6", bg: "rgba(154,160,166,0.10)", borde: "rgba(154,160,166,0.20)", punto: "#9AA0A6" },
 };
 
 const CARTILLA: Record<EstadoCartilla, Estilo> = {
-  REVISION: { etiqueta: "En revisión", texto: "#B45309", bg: "#FEF6E7", borde: "#F3E2C0", punto: "#B45309" },
-  APROBADA: { etiqueta: "Aprobada", texto: "#15803D", bg: "#EBF7EF", borde: "#CFEBD9", punto: "#15803D" },
-  RECHAZADA: { etiqueta: "Rechazada", texto: "#DC2626", bg: "#FDEEEE", borde: "#F7D4D4", punto: "#DC2626" },
+  REVISION: { etiqueta: "En revisión", texto: "#E0B270", bg: "rgba(224,178,112,0.10)", borde: "rgba(224,178,112,0.22)", punto: "#E0B270" },
+  APROBADA: { etiqueta: "Aprobada", texto: "#6DC47F", bg: "rgba(76,169,94,0.12)", borde: "rgba(76,169,94,0.26)", punto: "#6DC47F" },
+  RECHAZADA: { etiqueta: "Rechazada", texto: "#E08C8C", bg: "rgba(224,140,140,0.10)", borde: "rgba(224,140,140,0.22)", punto: "#E08C8C" },
 };
 
-function Pildora({ e }: { e: Estilo }) {
+export type EstiloPildora = Estilo;
+
+export function Pildora({ e }: { e: Estilo }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"

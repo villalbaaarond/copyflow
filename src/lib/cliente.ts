@@ -43,7 +43,14 @@ async function procesar<T>(res: Response): Promise<T> {
 }
 
 export async function obtener<T>(url: string): Promise<T> {
-  const res = await ejecutar(url, { method: "GET" }, true);
+  let res = await ejecutar(url, { method: "GET" }, true);
+  // Un GET no cambia nada, así que se puede repetir sin riesgo. Un solo
+  // reintento alcanza para que un tropiezo puntual de la base (los servicios
+  // con pooler los tienen) no le muestre una pantalla de error a nadie.
+  if (res.status >= 500) {
+    await new Promise((r) => setTimeout(r, 700));
+    res = await ejecutar(url, { method: "GET" }, true);
+  }
   return procesar<T>(res);
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { obtener } from "@/lib/cliente";
 import { useSesion } from "@/componentes/Sesion";
@@ -9,54 +9,158 @@ import { ChipPedido } from "@/componentes/Chip";
 import { Skeleton, EstadoVacio } from "@/componentes/Comunes";
 import { formatearPrecio } from "@/lib/formato";
 import type { EstadoPedido } from "@/lib/tipos";
-import { Package, Clock, FileSearch, TrendingUp } from "lucide-react";
+import {
+  Package,
+  Clock,
+  FileSearch,
+  TrendingUp,
+  TrendingDown,
+  CheckCheck,
+} from "lucide-react";
 
+interface Punto {
+  dia: string;
+  valor: number;
+}
 interface Metricas {
   pendientes: number;
   preparando: number;
   listas: number;
   enRevision: number;
-  ingresosSemana: number;
   totalPedidos: number;
   porEntregar: number;
+  pedidosHoy: number;
+  ingresosVentana: number;
+  ultimos7: number;
+  variacion: number | null;
 }
 interface Reciente {
   id: number;
   numero: string;
   estado: EstadoPedido;
   precioCongelado: number;
-  cartilla: { titulo: string };
+  cartilla: { titulo: string } | null;
+  tituloPropio: string | null;
   estudiante: { nombre: string };
 }
 interface Datos {
   metricas: Metricas;
-  serie: { dia: string; conteo: number }[];
+  dias: number;
+  seriePedidos: Punto[];
+  serieVentas: Punto[];
   recientes: Reciente[];
 }
 
-function MiniArea({ serie }: { serie: { conteo: number }[] }) {
-  const max = Math.max(1, ...serie.map((s) => s.conteo));
-  const ancho = 120;
-  const alto = 36;
-  const paso = serie.length > 1 ? ancho / (serie.length - 1) : ancho;
+// Gráfico de área con eje de días y montos reales. Si todo está en cero, lo
+// dice en vez de dibujar una línea plana que parezca decoración.
+function Grafico({
+  serie,
+  formato,
+  titulo,
+  subtitulo,
+}: {
+  serie: Punto[];
+  formato: (n: number) => string;
+  titulo: string;
+  subtitulo: string;
+}) {
+  // El id del degradado no puede llevar espacios: url(#id con espacios) no
+  // resuelve y el area termina rellena de negro. Se usa una clave segura.
+  const idGrad = `grad-${titulo.replace(/[^a-zA-Z0-9]/g, "")}`;
+  const max = Math.max(...serie.map((s) => s.valor));
+  const hayDatos = max > 0;
+  const ancho = 720;
+  const alto = 160;
+  const padX = 8;
+  const padY = 14;
+  const paso = serie.length > 1 ? (ancho - padX * 2) / (serie.length - 1) : 0;
+
   const puntos = serie.map((s, i) => {
-    const x = i * paso;
-    const y = alto - (s.conteo / max) * (alto - 4) - 2;
+    const x = padX + i * paso;
+    const y = hayDatos
+      ? alto - padY - (s.valor / max) * (alto - padY * 2)
+      : alto - padY;
     return [x, y] as const;
   });
   const linea = puntos.map(([x, y]) => `${x},${y}`).join(" ");
-  const area = `0,${alto} ${linea} ${ancho},${alto}`;
+  const area = `${padX},${alto - padY} ${linea} ${ancho - padX},${alto - padY}`;
+
+  const dia = (iso: string) => {
+    const [, m, d] = iso.split("-");
+    return `${d}/${m}`;
+  };
+
   return (
-    <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} className="overflow-visible">
-      <defs>
-        <linearGradient id="cf-area" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#5B5BD6" stopOpacity="0.22" />
-          <stop offset="1" stopColor="#5B5BD6" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polyline points={area} fill="url(#cf-area)" stroke="none" />
-      <polyline points={linea} fill="none" stroke="#5B5BD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div className="tarjeta p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h2 className="text-[15px] font-semibold text-texto">{titulo}</h2>
+          <p className="text-xs text-terciario">{subtitulo}</p>
+        </div>
+        <p className="mono text-[15px] font-bold text-texto">
+          {formato(serie.reduce((a, s) => a + s.valor, 0))}
+        </p>
+      </div>
+
+      {!hayDatos ? (
+        <p className="mt-6 pb-4 text-center text-sm text-terciario">
+          Todavía no hay movimiento en este período.
+        </p>
+      ) : (
+        <>
+          <svg
+            viewBox={`0 0 ${ancho} ${alto}`}
+            className="mt-3 w-full"
+            preserveAspectRatio="none"
+            style={{ height: 160 }}
+          >
+            <defs>
+              <linearGradient id={idGrad} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#4CA95E" stopOpacity="0.30" />
+                <stop offset="1" stopColor="#4CA95E" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {/* Línea del máximo, como referencia de escala. */}
+            <line
+              x1={padX}
+              y1={padY}
+              x2={ancho - padX}
+              y2={padY}
+              stroke="#252B2D"
+              strokeDasharray="4 6"
+            />
+            <polyline points={area} fill={`url(#${idGrad})`} />
+            <polyline
+              points={linea}
+              fill="none"
+              stroke="#4CA95E"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+            {puntos.map(([x, y], i) => (
+              <circle
+                key={i}
+                cx={x}
+                cy={y}
+                r={serie[i].valor > 0 ? 3.5 : 0}
+                fill="#101416"
+                stroke="#4CA95E"
+                strokeWidth="2"
+              >
+                <title>{`${dia(serie[i].dia)}: ${formato(serie[i].valor)}`}</title>
+              </circle>
+            ))}
+          </svg>
+          <div className="mt-1 flex justify-between text-[10.5px] text-terciario">
+            <span>{dia(serie[0].dia)}</span>
+            <span className="mono">máx {formato(max)}</span>
+            <span>{dia(serie[serie.length - 1].dia)}</span>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -64,37 +168,27 @@ function Tarjeta({
   etiqueta,
   valor,
   icono: Icono,
-  tendencia,
-  serie,
+  detalle,
 }: {
   etiqueta: string;
   valor: string;
   icono: typeof Package;
-  tendencia?: string;
-  serie?: { conteo: number }[];
+  detalle?: React.ReactNode;
 }) {
   return (
     <div className="tarjeta p-5">
       <div className="flex items-center justify-between">
-        <span className="text-[12.5px] font-semibold text-secundario">{etiqueta}</span>
+        <span className="text-[12.5px] font-semibold text-secundario">
+          {etiqueta}
+        </span>
         <span className="rounded-sm bg-marca-tinte p-1.5 text-marca">
           <Icono size={16} strokeWidth={2} />
         </span>
       </div>
-      <div className="mt-3 flex items-end justify-between gap-2">
-        <div>
-          <p className="mono text-[26px] font-bold leading-none tracking-tight text-texto">
-            {valor}
-          </p>
-          {tendencia && (
-            <p className="mt-2 flex items-center gap-1 text-xs font-medium text-estado-listaText">
-              <TrendingUp size={13} strokeWidth={2.2} />
-              {tendencia}
-            </p>
-          )}
-        </div>
-        {serie && <MiniArea serie={serie} />}
-      </div>
+      <p className="mono mt-3 text-[26px] font-bold leading-none tracking-tight text-texto">
+        {valor}
+      </p>
+      {detalle && <div className="mt-2 text-xs">{detalle}</div>}
     </div>
   );
 }
@@ -104,11 +198,30 @@ export function Dashboard() {
   const [datos, setDatos] = useState<Datos | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    obtener<Datos>("/api/estadisticas")
-      .then(setDatos)
-      .catch((e) => setError(e.message));
+  const cargar = useCallback(async () => {
+    try {
+      setDatos(await obtener<Datos>("/api/estadisticas"));
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error");
+    }
   }, []);
+
+  useEffect(() => {
+    cargar();
+    // Refresco espaciado: alcanza para ver los pedidos nuevos sin castigar
+    // la base con una consulta cada pocos segundos.
+    const id = setInterval(cargar, 30000);
+    // Y al volver a la pestaña, para no mirar numeros viejos.
+    const alVolver = () => {
+      if (document.visibilityState === "visible") cargar();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
+  }, [cargar]);
 
   const saludo = (() => {
     const h = new Date().getHours();
@@ -124,14 +237,22 @@ export function Dashboard() {
         subtitulo="Este es el resumen de la fotocopiadora."
       />
 
-      {error && <EstadoVacio titulo="No se pudieron cargar las estadísticas" descripcion={error} />}
+      {error && (
+        <EstadoVacio
+          titulo="No se pudieron cargar las estadísticas"
+          descripcion={error}
+        />
+      )}
 
       {!datos && !error && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-[118px]" />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-[120px]" />
+            ))}
+          </div>
+          <Skeleton className="mt-7 h-[240px]" />
+        </>
       )}
 
       {datos && (
@@ -141,31 +262,83 @@ export function Dashboard() {
               etiqueta="Pedidos pendientes"
               valor={String(datos.metricas.pendientes)}
               icono={Clock}
-              serie={datos.serie}
+              detalle={
+                <span className="text-terciario">
+                  esperando que los prepares
+                </span>
+              }
             />
             <Tarjeta
               etiqueta="Por entregar"
               valor={String(datos.metricas.porEntregar)}
               icono={Package}
-              serie={datos.serie}
+              detalle={
+                <span className="text-terciario">
+                  {datos.metricas.preparando} preparando ·{" "}
+                  {datos.metricas.listas} listas
+                </span>
+              }
             />
             <Tarjeta
               etiqueta="Cartillas en revisión"
               valor={String(datos.metricas.enRevision)}
               icono={FileSearch}
+              detalle={
+                <span className="text-terciario">esperando tu aprobación</span>
+              }
             />
             <Tarjeta
-              etiqueta="Ingresos de la semana"
-              valor={formatearPrecio(datos.metricas.ingresosSemana)}
-              icono={TrendingUp}
-              tendencia="solo entregados"
+              etiqueta="Ventas (7 días)"
+              valor={formatearPrecio(datos.metricas.ultimos7)}
+              icono={CheckCheck}
+              detalle={
+                datos.metricas.variacion === null ? (
+                  <span className="text-terciario">solo pedidos entregados</span>
+                ) : (
+                  <span
+                    className={`flex items-center gap-1 font-medium ${
+                      datos.metricas.variacion >= 0
+                        ? "text-estado-listaText"
+                        : "text-estado-rechazadaText"
+                    }`}
+                  >
+                    {datos.metricas.variacion >= 0 ? (
+                      <TrendingUp size={13} strokeWidth={2.2} />
+                    ) : (
+                      <TrendingDown size={13} strokeWidth={2.2} />
+                    )}
+                    {datos.metricas.variacion >= 0 ? "+" : ""}
+                    {datos.metricas.variacion}% vs semana anterior
+                  </span>
+                )
+              }
             />
           </div>
 
-          <section className="mt-7 tarjeta overflow-hidden">
+          <div className="mt-7 grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <Grafico
+              serie={datos.serieVentas}
+              formato={formatearPrecio}
+              titulo="Ventas"
+              subtitulo={`Últimos ${datos.dias} días · solo pedidos entregados`}
+            />
+            <Grafico
+              serie={datos.seriePedidos}
+              formato={(n) => String(n)}
+              titulo="Pedidos recibidos"
+              subtitulo={`Últimos ${datos.dias} días · reservas y trabajos`}
+            />
+          </div>
+
+          <section className="tarjeta mt-7 overflow-hidden">
             <div className="flex items-center justify-between border-b border-bordeSuave px-5 py-4">
-              <h2 className="text-[15px] font-semibold text-texto">Pedidos recientes</h2>
-              <Link href="/panel/pedidos" className="text-sm font-medium text-marca hover:text-marca-hover">
+              <h2 className="text-[15px] font-semibold text-texto">
+                Pedidos recientes
+              </h2>
+              <Link
+                href="/panel/pedidos"
+                className="text-sm font-medium text-marca hover:text-marca-hover"
+              >
                 Ver todos
               </Link>
             </div>
@@ -175,10 +348,17 @@ export function Dashboard() {
               <div className="divide-y divide-bordeSuave">
                 {datos.recientes.map((p) => (
                   <div key={p.id} className="flex items-center gap-3 px-5 py-3.5">
-                    <span className="mono text-sm font-semibold text-marca">{p.numero}</span>
+                    <span className="mono text-sm font-semibold text-marca">
+                      {p.numero}
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-texto">{p.cartilla.titulo}</p>
-                      <p className="truncate text-xs text-terciario">{p.estudiante.nombre}</p>
+                      <p className="truncate text-sm font-medium text-texto">
+                        {p.cartilla?.titulo ?? p.tituloPropio ?? "Trabajo"}
+                      </p>
+                      <p className="truncate text-xs text-terciario">
+                        {p.estudiante.nombre}
+                        {!p.cartilla && " · archivo propio"}
+                      </p>
                     </div>
                     <span className="mono hidden text-sm text-secundario sm:block">
                       {formatearPrecio(p.precioCongelado)}

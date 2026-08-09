@@ -11,9 +11,24 @@ export async function usuarioDePagina(): Promise<Usuario | null> {
   if (!actual) return null;
   const u = await prisma.usuario.findUnique({
     where: { id: actual.id },
-    select: { id: true, nombre: true, email: true, rol: true },
+    select: {
+      id: true,
+      nombre: true,
+      email: true,
+      rol: true,
+      fotocopiadoraId: true,
+      fotocopiadora: { select: { nombre: true, activa: true } },
+    },
   });
-  return u as Usuario | null;
+  if (!u || !u.fotocopiadora.activa) return null;
+  return {
+    id: u.id,
+    nombre: u.nombre,
+    email: u.email,
+    rol: u.rol,
+    fotocopiadoraId: u.fotocopiadoraId,
+    fotocopiadoraNombre: u.fotocopiadora.nombre,
+  } as Usuario;
 }
 
 // Exige que la página tenga un usuario con uno de los roles; si no, redirige.

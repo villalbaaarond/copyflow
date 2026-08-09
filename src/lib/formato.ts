@@ -3,14 +3,15 @@ import type { PrismaClient, Prisma } from "@prisma/client";
 type ClienteTx = Prisma.TransactionClient | PrismaClient;
 
 // Genera el próximo número de pedido formateado "P-0001".
+// La numeración es POR FOTOCOPIADORA: cada tenant lleva su propia serie, así
+// nadie deduce el volumen de pedidos de otro a partir de su numeración.
 // Se llama dentro de la transacción de creación para evitar duplicados.
-export async function proximoNumeroPedido(cliente: ClienteTx): Promise<string> {
-  const ultimo = await cliente.pedido.findFirst({
-    orderBy: { id: "desc" },
-    select: { id: true },
-  });
-  const siguiente = (ultimo?.id ?? 0) + 1;
-  return `P-${String(siguiente).padStart(4, "0")}`;
+export async function proximoNumeroPedido(
+  cliente: ClienteTx,
+  fotocopiadoraId: number
+): Promise<string> {
+  const cantidad = await cliente.pedido.count({ where: { fotocopiadoraId } });
+  return `P-${String(cantidad + 1).padStart(4, "0")}`;
 }
 
 export function formatearPrecio(centavosOEntero: number): string {
