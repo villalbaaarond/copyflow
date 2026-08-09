@@ -107,3 +107,44 @@ export const esquemaConfiguracion = z.object({
 export const esquemaPregunta = z.object({
   pregunta: z.string().min(1, "Escribí una pregunta.").max(300),
 });
+
+// ---------------------------------------------------------------------------
+// Panel de dueño de la plataforma.
+// ---------------------------------------------------------------------------
+
+export const esquemaIngresoDueno = z.object({
+  email: z.string().email("Email inválido."),
+  contrasena: z.string().min(1, "Escribí la contraseña."),
+});
+
+export const esquemaCodigoTotp = z.object({
+  codigo: z
+    .string()
+    .regex(/^\d{6}$/, "El código son 6 dígitos."),
+});
+
+export const esquemaNuevaFotocopiadora = z.object({
+  nombre: z.string().min(2, "Poné el nombre del negocio.").max(80),
+  // El slug es lo que tipean los usuarios al registrarse: solo minúsculas,
+  // números y guiones, para que no haya ambigüedad al dictarlo.
+  slug: z
+    .string()
+    .min(3, "El código va de 3 a 30 caracteres.")
+    .max(30)
+    .regex(/^[a-z0-9-]+$/, "Solo minúsculas, números y guiones."),
+  dominioDocente: z.string().max(120).optional().or(z.literal("")),
+  adminNombre: z.string().min(2, "Poné el nombre del dueño.").max(80),
+  adminEmail: z.string().email("Email inválido."),
+  adminContrasena: z
+    .string()
+    .min(10, "La contraseña inicial va de 10 caracteres para arriba."),
+});
+
+export const esquemaEstadoFotocopiadora = z.object({
+  activa: z.boolean(),
+});
+
+export const esquemaPagoSuscripcion = z.object({
+  meses: z.coerce.number().int().min(1).max(24),
+  referencia: z.string().min(2, "Poné una referencia del pago.").max(120),
+});

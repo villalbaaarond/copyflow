@@ -36,6 +36,7 @@ export async function GET() {
       pedidosVentana,
       entregadosVentana,
       entregadosHoy,
+      recientes,
     ] = await Promise.all([
       prisma.pedido.count({ where: { fotocopiadoraId, estado: "PENDIENTE" } }),
       prisma.pedido.count({ where: { fotocopiadoraId, estado: "PREPARANDO" } }),
@@ -58,6 +59,17 @@ export async function GET() {
       }),
       prisma.pedido.count({
         where: { fotocopiadoraId, creadoEn: { gte: hoy } },
+      }),
+      // Va en el mismo grupo que el resto: antes era una consulta suelta
+      // después de todas las demás, o sea un viaje extra a la base.
+      prisma.pedido.findMany({
+        where: { fotocopiadoraId },
+        include: {
+          cartilla: { select: { titulo: true } },
+          estudiante: { select: { nombre: true } },
+        },
+        orderBy: { creadoEn: "desc" },
+        take: 6,
       }),
     ]);
 
@@ -84,16 +96,6 @@ export async function GET() {
       previos7 === 0
         ? null
         : Math.round(((ultimos7 - previos7) / previos7) * 100);
-
-    const recientes = await prisma.pedido.findMany({
-      where: { fotocopiadoraId },
-      include: {
-        cartilla: { select: { titulo: true } },
-        estudiante: { select: { nombre: true } },
-      },
-      orderBy: { creadoEn: "desc" },
-      take: 6,
-    });
 
     return NextResponse.json({
       metricas: {

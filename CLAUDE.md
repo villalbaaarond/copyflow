@@ -119,6 +119,15 @@ Cada fotocopiadora le paga a la plataforma una suscripción mensual.
 - Cobro: hoy es **manual** (transferencia + registro del pago en Ajustes → Suscripción, que extiende el período). Al integrar una pasarela, su webhook debe llamar a `registrarPago()`; no se duplica lógica.
 - Solo el admin ve y gestiona la suscripción de SU fotocopiadora.
 
+## Panel de dueño de la plataforma (`/dueno`)
+El mantenimiento de TODAS las fotocopiadoras lo hace una sola persona. Ese acceso **no es un rol más**: es un mundo aparte que no se toca con el de los tenants.
+- Tabla propia `DuenoPlataforma` (no es un `Usuario`), **secreto de firma propio** (`JWT_SECRET_DUENO`) y **cookie propia** (`cf_dueno`). Como el secreto es distinto, ningún token de fotocopiadora puede valer como token de plataforma, ni aunque alguien lograra cambiarse el rol en la base.
+- **Triple filtro para entrar**: (1) el email tiene que ser exactamente `EMAIL_DUENO`, que vive en las variables de entorno y no en la base — tomar el panel exige acceso al servidor, no sólo a PostgreSQL; (2) contraseña Argon2id; (3) **segundo factor TOTP obligatorio**. La contraseña sola nunca abre el panel: emite un token corto de 10 minutos que sólo sirve para presentar el código. Un código ya usado no se puede repetir (se guarda el paso consumido).
+- Si `EMAIL_DUENO` o `JWT_SECRET_DUENO` no están definidas, `/dueno` y `/api/plataforma/*` responden **404**. Sin sesión válida también responden 404, nunca 401 ni 403: no se confirma que el panel exista.
+- Rate limiting propio y más duro: 3 intentos por IP y bloqueo creciente de hasta 24 horas. Todo queda en `AuditoriaPlataforma` (sólo inserción), **incluidos los intentos fallidos**, con IP y fecha.
+- **Mínimo privilegio incluso para el dueño**: el panel muestra suscripciones y CANTIDADES agregadas (usuarios, pedidos, cartillas, facturado, último uso). Nunca nombres de alumnos, títulos de cartillas ni archivos. Puede dar de alta una fotocopiadora con su admin, suspenderla/reactivarla y registrar pagos de suscripción reusando `registrarPago()`.
+- La cuenta se crea sólo desde el servidor con `npm run dueno`, que lee `CLAVE_DUENO_INICIAL` del entorno. Volver a correrlo resetea el segundo factor (es la vía de recuperación si se pierde el teléfono) y borra cualquier otra cuenta de dueño: existe una sola.
+
 ## Reglas de trabajo
 - No agregar funcionalidades fuera de este documento
 - Commits chicos y descriptivos en español

@@ -87,6 +87,58 @@ PINes docentes de prueba: **central** `7390` · **norte** `1234`. Entrando con `
 
 > Probá el aislamiento: entrá como `marta@copyflow.app` y fijate que no existe ningún dato de Copias del Norte, y viceversa.
 
+## Panel de dueño de la plataforma (`/dueno`)
+
+Es el panel para mantener **todas** las fotocopiadoras: quién está al día, quién
+venció, cuánto se usa el sistema y alta de clientes nuevos. Lo usa una sola
+persona y **no es un rol de la aplicación**: vive en una tabla aparte, con su
+propia contraseña, su propio segundo factor y su propia clave de firma.
+
+### Cómo activarlo
+
+1. Generá dos claves distintas:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+2. Ponelas en tu `.env` (y en las variables de entorno del hosting):
+
+```
+EMAIL_DUENO="el-unico-email-que-puede-entrar@ejemplo.com"
+JWT_SECRET_DUENO="la-clave-larga-que-generaste-recien"
+CLAVE_DUENO_INICIAL="una-contrasena-larga-y-unica"
+```
+
+3. Creá la cuenta y borrá la contraseña del archivo:
+
+```bash
+npm run dueno     # después borrá CLAVE_DUENO_INICIAL del .env
+```
+
+4. Entrá a `/dueno/ingresar`. La primera vez te muestra una clave para cargar en
+   **Google Authenticator** (opción *Ingresar una clave de configuración*).
+   Anotala en un papel: se muestra una sola vez.
+
+### Por qué es difícil de vulnerar
+
+- **Sin `EMAIL_DUENO` y `JWT_SECRET_DUENO`, la ruta no existe**: `/dueno` responde 404. Sin sesión válida, también 404 — nunca 401 ni 403, así que ni siquiera se confirma que el panel exista.
+- **La clave de firma es distinta de la de los usuarios comunes.** Una sesión de fotocopiadora no puede valer como sesión de plataforma, ni aunque alguien lograra cambiarse el rol directamente en la base de datos.
+- **El email autorizado vive en el entorno, no en la base.** Para tomar el panel no alcanza con escribir en PostgreSQL: hay que poder cambiar variables de entorno del servidor.
+- **La contraseña sola no abre nada.** Después de acertarla, todavía falta el código de 6 dígitos del celular. Un código ya usado no se puede repetir.
+- **3 intentos por IP** y bloqueo creciente de hasta 24 horas. Todo queda registrado, aciertos y fallos, con IP y hora, en una pantalla dentro del panel.
+
+### Lo que el panel NO muestra
+
+A propósito no muestra nombres de alumnos, títulos de cartillas ni archivos: sólo
+suscripciones y cantidades. Vos necesitás saber quién te paga y cuánto se usa el
+sistema, no leer los datos de las escuelas.
+
+### Si perdés el celular
+
+Volvé a correr `npm run dueno` con una `CLAVE_DUENO_INICIAL` nueva: eso resetea
+el segundo factor y lo volvés a dar de alta al entrar.
+
 ## Publicar en internet (deploy)
 
 La app está lista para publicarse. Necesita **tres variables de entorno**:
@@ -96,6 +148,8 @@ La app está lista para publicarse. Necesita **tres variables de entorno**:
 | `DATABASE_URL` | PostgreSQL (Neon, Vercel Postgres, Supabase…) | Sí |
 | `JWT_SECRET` | Firma de las sesiones. Una clave larga y propia | Sí |
 | `BLOB_READ_WRITE_TOKEN` | Guardar los PDF en la nube | Sí en producción |
+| `EMAIL_DUENO` | Único email que entra al panel `/dueno` | Sólo si lo querés |
+| `JWT_SECRET_DUENO` | Firma del panel `/dueno`. **Distinta** de `JWT_SECRET` | Sólo si lo querés |
 
 **Sobre los archivos:** un servidor publicado no conserva lo que se escribe en su
 disco (se borra en cada despliegue). Por eso el guardado tiene dos motores y

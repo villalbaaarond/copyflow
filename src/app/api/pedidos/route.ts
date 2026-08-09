@@ -77,10 +77,12 @@ export async function POST(req: Request) {
     verificarOrigin(req);
     const usuario = await exigirRol("ESTUDIANTE");
 
-    const config = await prisma.configuracion.findUnique({
+    // Se lanza sin esperar: mientras viaja a la base, el servidor sigue
+    // leyendo el cuerpo del pedido. Con la base lejos, ese solapamiento
+    // ahorra un viaje completo de ida y vuelta.
+    const configPromesa = prisma.configuracion.findUnique({
       where: { fotocopiadoraId: usuario.fotocopiadoraId },
     });
-    const precioPorPagina = config?.precioPorPagina ?? 50;
     const tipoContenido = req.headers.get("content-type") ?? "";
 
     // ---------- Camino 1: trabajo propio (PDF del estudiante) ----------
@@ -105,7 +107,8 @@ export async function POST(req: Request) {
       }
 
       const nombrePdf = await guardarArchivo(DIR_TRABAJOS, buf, "pdf");
-      const precioCongelado = datos.paginas * precioPorPagina;
+      const config = await configPromesa;
+      const precioCongelado = datos.paginas * (config?.precioPorPagina ?? 50);
 
       const pedido = await prisma.$transaction(async (tx) => {
         const numero = await proximoNumeroPedido(tx, usuario.fotocopiadoraId);
@@ -151,18 +154,23 @@ export async function POST(req: Request) {
     // ---------- Camino 2: reserva de una cartilla aprobada ----------
     const datos = esquemaReserva.parse(await req.json());
 
-    const cartilla = await prisma.cartilla.findFirst({
-      where: {
-        id: datos.cartillaId,
-        fotocopiadoraId: usuario.fotocopiadoraId,
-      },
-    });
+    // La cartilla no depende de la configuración: las dos consultas viajan
+    // juntas y se espera una sola vez.
+    const [config, cartilla] = await Promise.all([
+      configPromesa,
+      prisma.cartilla.findFirst({
+        where: {
+          id: datos.cartillaId,
+          fotocopiadoraId: usuario.fotocopiadoraId,
+        },
+      }),
+    ]);
     if (!cartilla) throw new ErrorHttp(404, "La cartilla no existe.");
     if (cartilla.estado !== "APROBADA") {
       throw new ErrorHttp(409, "Esta cartilla todavía no está disponible.");
     }
 
-    const precioCongelado = cartilla.paginas * precioPorPagina;
+    const precioCongelado = cartilla.paginas * (config?.precioPorPagina ?? 50);
 
     const pedido = await prisma.$transaction(async (tx) => {
       const numero = await proximoNumeroPedido(tx, usuario.fotocopiadoraId);

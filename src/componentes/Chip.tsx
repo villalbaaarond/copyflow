@@ -23,7 +23,9 @@ const CARTILLA: Record<EstadoCartilla, Estilo> = {
   RECHAZADA: { etiqueta: "Rechazada", texto: "#E08C8C", bg: "rgba(224,140,140,0.10)", borde: "rgba(224,140,140,0.22)", punto: "#E08C8C" },
 };
 
-function Pildora({ e }: { e: Estilo }) {
+export type EstiloPildora = Estilo;
+
+export function Pildora({ e }: { e: Estilo }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"

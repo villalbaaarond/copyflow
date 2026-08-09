@@ -248,6 +248,47 @@ model PagoSuscripcion {
   @@index([suscripcionId])
 }
 
+// ---------------------------------------------------------------------------
+// DUEÑO DE LA PLATAFORMA (mantenimiento de TODAS las fotocopiadoras).
+//
+// Deliberadamente NO es un Usuario ni un rol más. Es una tabla aparte, con su
+// propia contraseña, su propio segundo factor y su propio secreto de firma.
+// Consecuencia: ningún token de una fotocopiadora puede valer acá aunque
+// alguien logre cambiarse el rol, y ninguna consulta de tenant puede devolver
+// datos de plataforma. Son dos mundos separados que no se tocan.
+// ---------------------------------------------------------------------------
+model DuenoPlataforma {
+  id             Int      @id @default(autoincrement())
+  nombre         String
+  // Además de existir acá, el email tiene que coincidir con EMAIL_DUENO (una
+  // variable de entorno). Sin las dos cosas no se entra: si alguien llegara a
+  // insertar una fila en esta tabla, igual no le sirve.
+  email          String   @unique
+  hashContrasena String
+  // Secreto del segundo factor (TOTP, tipo Google Authenticator). Mientras no
+  // esté activo, el panel no se abre: la contraseña sola no alcanza.
+  totpSecreto    String?
+  totpActivo     Boolean  @default(false)
+  // Último paso de 30 s ya usado: impide reusar un código robado.
+  totpUltimoPaso Int?
+  ultimoAcceso   DateTime?
+  creadoEn       DateTime @default(now())
+}
+
+// Auditoría del panel de plataforma, separada de la de cada fotocopiadora
+// para que ningún tenant pueda leerla. Solo inserción, incluidos los intentos
+// fallidos de ingreso.
+model AuditoriaPlataforma {
+  id       Int      @id @default(autoincrement())
+  email    String
+  accion   String
+  ip       String?
+  exito    Boolean  @default(true)
+  creadoEn DateTime @default(now())
+
+  @@index([creadoEn])
+}
+
 // Refresh tokens persistidos para permitir rotación e invalidación (logout).
 // Se guarda solo el hash del token, nunca el token en claro.
 model Sesion {

@@ -1,8 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 // Cabeceras de seguridad para todas las respuestas.
-export function middleware() {
+export function middleware(req: NextRequest) {
   const res = NextResponse.next();
+
+  // El panel de plataforma no se indexa ni se guarda en caché en ningún lado.
+  const ruta = req.nextUrl.pathname;
+  if (ruta.startsWith("/dueno") || ruta.startsWith("/api/plataforma")) {
+    res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    res.headers.set("Cache-Control", "no-store, max-age=0");
+  }
 
   // CSP. En producción queda estricta; en desarrollo se habilita lo que Next.js
   // necesita para el modo dev (eval para HMR/React Refresh y el websocket de
