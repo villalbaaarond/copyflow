@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Package, History, User, type LucideIcon } from "lucide-react";
+import { MenuUsuario } from "@/componentes/MenuUsuario";
 
 const ITEMS: { href: string; etiqueta: string; icono: LucideIcon }[] = [
   { href: "/estudiante", etiqueta: "Inicio", icono: Home },
@@ -15,7 +16,11 @@ export function MovilEstudiante({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
     <div className="min-h-screen bg-fondo">
-      <main className="mx-auto max-w-md px-4 pb-24 pt-5">{children}</main>
+      {/* Menú de usuario siempre arriba a la derecha, como en los otros roles. */}
+      <div className="mx-auto flex max-w-md justify-end px-4 pt-4">
+        <MenuUsuario />
+      </div>
+      <main className="mx-auto max-w-md px-4 pb-24 pt-3">{children}</main>
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-bordeSuave bg-superficie/85 backdrop-blur">
         <div className="mx-auto flex max-w-md items-stretch justify-around">
           {ITEMS.map((it) => {

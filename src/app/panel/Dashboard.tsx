@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { obtener } from "@/lib/cliente";
 import { useSesion } from "@/componentes/Sesion";
@@ -64,6 +64,9 @@ function Grafico({
   titulo: string;
   subtitulo: string;
 }) {
+  // El id del degradado no puede llevar espacios: url(#id con espacios) no
+  // resuelve y el area termina rellena de negro. Se usa una clave segura.
+  const idGrad = `grad-${titulo.replace(/[^a-zA-Z0-9]/g, "")}`;
   const max = Math.max(...serie.map((s) => s.valor));
   const hayDatos = max > 0;
   const ancho = 720;
@@ -112,7 +115,7 @@ function Grafico({
             style={{ height: 160 }}
           >
             <defs>
-              <linearGradient id={`g-${titulo}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={idGrad} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" stopColor="#4CA95E" stopOpacity="0.30" />
                 <stop offset="1" stopColor="#4CA95E" stopOpacity="0" />
               </linearGradient>
@@ -126,7 +129,7 @@ function Grafico({
               stroke="#252B2D"
               strokeDasharray="4 6"
             />
-            <polyline points={area} fill={`url(#g-${titulo})`} />
+            <polyline points={area} fill={`url(#${idGrad})`} />
             <polyline
               points={linea}
               fill="none"
@@ -195,11 +198,30 @@ export function Dashboard() {
   const [datos, setDatos] = useState<Datos | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    obtener<Datos>("/api/estadisticas")
-      .then(setDatos)
-      .catch((e) => setError(e.message));
+  const cargar = useCallback(async () => {
+    try {
+      setDatos(await obtener<Datos>("/api/estadisticas"));
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error");
+    }
   }, []);
+
+  useEffect(() => {
+    cargar();
+    // Refresco espaciado: alcanza para ver los pedidos nuevos sin castigar
+    // la base con una consulta cada pocos segundos.
+    const id = setInterval(cargar, 30000);
+    // Y al volver a la pestaña, para no mirar numeros viejos.
+    const alVolver = () => {
+      if (document.visibilityState === "visible") cargar();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
+  }, [cargar]);
 
   const saludo = (() => {
     const h = new Date().getHours();

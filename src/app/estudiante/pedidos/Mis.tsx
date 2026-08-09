@@ -31,7 +31,7 @@ export function MisPedidos({ activos }: { activos: boolean }) {
   // Polling para ver los cambios de estado en vivo (solo en pedidos activos).
   useEffect(() => {
     if (!activos) return;
-    const id = setInterval(cargar, 8000);
+    const id = setInterval(cargar, 25000);
     return () => clearInterval(id);
   }, [cargar, activos]);
 

@@ -44,7 +44,7 @@ export function GestionPedidos() {
 
   // Polling suave para reflejar cambios.
   useEffect(() => {
-    const id = setInterval(cargar, 10000);
+    const id = setInterval(cargar, 25000);
     return () => clearInterval(id);
   }, [cargar]);
 

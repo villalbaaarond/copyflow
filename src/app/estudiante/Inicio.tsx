@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { obtener, enviar, ErrorApi } from "@/lib/cliente";
 import { useSesion } from "@/componentes/Sesion";
-import { Avatar } from "@/componentes/Marca";
 import { iconoDeMateria } from "@/componentes/IconoMateria";
 import { Skeleton, EstadoVacio, Modal, Aviso } from "@/componentes/Comunes";
 import { formatearPrecio, formatearTamanio } from "@/lib/formato";
@@ -59,7 +58,6 @@ export function InicioEstudiante() {
             {usuario?.nombre?.split(" ")[0]}
           </h1>
         </div>
-        <Avatar nombre={usuario?.nombre ?? "?"} tamano={40} />
       </div>
 
       {/* Trabajo propio: el estudiante manda a imprimir su PDF, sin depender

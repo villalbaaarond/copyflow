@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSesion } from "@/componentes/Sesion";
+import { MenuUsuario } from "@/componentes/MenuUsuario";
 import { Logo, Avatar } from "@/componentes/Marca";
 import {
   LogOut,
@@ -14,6 +15,7 @@ import {
   Settings,
   Upload,
   BookOpen,
+  Menu,
   type LucideIcon,
 } from "lucide-react";
 
@@ -113,12 +115,16 @@ export function Escritorio({
           <Logo tamano={26} />
           <span className="display text-[17px] text-texto">Copy<span className="italic">Flow</span></span>
         </div>
-        <button
-          onClick={() => setMenuMovil((v) => !v)}
-          className="flex items-center gap-2 rounded-sm border border-borde px-2.5 py-1.5"
-        >
-          <Avatar nombre={usuario?.nombre ?? "?"} tamano={24} />
-        </button>
+        <div className="flex items-center gap-2">
+          <MenuUsuario />
+          <button
+            onClick={() => setMenuMovil((v) => !v)}
+            className="rounded-sm border border-borde px-2.5 py-2 text-secundario"
+            aria-label="Abrir navegación"
+          >
+            <Menu size={18} strokeWidth={2} />
+          </button>
+        </div>
       </header>
 
       {/* Menú desplegable móvil */}
@@ -160,7 +166,11 @@ export function Escritorio({
       )}
 
       <main className="flex-1 lg:pl-60">
-        <div className="mx-auto max-w-[1240px] px-4 pb-16 pt-[68px] sm:px-6 lg:px-8 lg:pt-8">
+        {/* El usuario siempre visible arriba a la derecha, en cualquier rol. */}
+        <div className="hidden justify-end px-4 pt-6 sm:px-6 lg:flex lg:px-8">
+          <MenuUsuario />
+        </div>
+        <div className="mx-auto max-w-[1240px] px-4 pb-16 pt-[68px] sm:px-6 lg:px-8 lg:pt-4">
           {children}
         </div>
       </main>

@@ -46,6 +46,13 @@ npm run dev                 # http://localhost:3000
 > los scripts de instalación de los paquetes por seguridad, así que el cliente
 > de Prisma no se genera solo al hacer `npm install`.
 
+> **Si usás Neon (o cualquier Postgres con pooler):** la cadena que trae
+> `-pooler` en el host pasa por PgBouncer, que reparte las consultas entre
+> conexiones distintas. Prisma necesita saberlo (`?pgbouncer=true`) o vas a ver
+> errores intermitentes al guardar y mucha lentitud. La app agrega ese parámetro
+> sola al detectar el pooler, pero las **migraciones** (`prisma migrate`) tienen
+> que correr con la cadena **sin** `-pooler` (la "directa" que muestra Neon).
+
 > **En producción generá tu propio `JWT_SECRET`:**
 > `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
 
