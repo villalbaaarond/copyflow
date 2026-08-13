@@ -5,6 +5,9 @@
 // Cuando /dueno da 404 es porque falta algo de la configuración. Este script
 // revisa todo lo necesario y dice qué falla, sin mostrar ninguna clave.
 
+// Primero de todo: deja el .env disponible en process.env.
+import "./entorno";
+
 import { PrismaClient } from "@prisma/client";
 import argon2 from "argon2";
 

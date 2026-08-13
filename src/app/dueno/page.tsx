@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
+// Igual que la pantalla de ingreso: si se prerenderizara, el notFound() del
+// build quedaría grabado y el panel respondería 404 para siempre, aunque las
+// variables de entorno estuvieran bien cargadas en el servidor.
+export const dynamic = "force-dynamic";
+
 export default async function PaginaDueno() {
   if (!plataformaHabilitada()) notFound();
 

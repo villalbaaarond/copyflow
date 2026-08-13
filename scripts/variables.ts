@@ -7,8 +7,7 @@
 // formato en su pantalla de "Environment Variables". Así no hay que ir
 // buscándolas de a una en el .env, que es donde uno se equivoca.
 
-import { readFileSync } from "fs";
-import { join } from "path";
+import "./entorno";
 
 // Las que SÍ van al servidor publicado.
 const NECESARIAS = [
@@ -22,34 +21,10 @@ const NECESARIAS = [
 // Las que NO van nunca: sirven solo en tu computadora.
 const PROHIBIDAS = ["CLAVE_DUENO_INICIAL", "NOMBRE_DUENO"];
 
-function leerEnv(): Map<string, string> {
-  const mapa = new Map<string, string>();
-  let contenido = "";
-  try {
-    contenido = readFileSync(join(process.cwd(), ".env"), "utf8");
-  } catch {
-    return mapa;
-  }
-  for (const linea of contenido.split("\n")) {
-    const limpia = linea.trim();
-    if (!limpia || limpia.startsWith("#")) continue;
-    const igual = limpia.indexOf("=");
-    if (igual < 0) continue;
-    const nombre = limpia.slice(0, igual).trim();
-    let valor = limpia.slice(igual + 1).trim();
-    // Saca las comillas de los extremos, si las tiene.
-    if (
-      (valor.startsWith('"') && valor.endsWith('"')) ||
-      (valor.startsWith("'") && valor.endsWith("'"))
-    ) {
-      valor = valor.slice(1, -1);
-    }
-    mapa.set(nombre, valor);
-  }
-  return mapa;
-}
-
-const env = leerEnv();
+// Ya cargado por ./entorno, así que alcanza con leer process.env.
+const env = new Map<string, string>(
+  Object.entries(process.env).filter(([, v]) => typeof v === "string") as [string, string][]
+);
 const listas: string[] = [];
 const faltan: { nombre: string; para: string }[] = [];
 

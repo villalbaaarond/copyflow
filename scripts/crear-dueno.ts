@@ -9,6 +9,9 @@
 // El segundo factor NO se configura acá: se da de alta en el primer ingreso
 // al panel, que es donde se muestra la clave para la app del celular.
 
+// Primero de todo: deja el .env disponible en process.env.
+import "./entorno";
+
 import { PrismaClient } from "@prisma/client";
 import argon2 from "argon2";
 
