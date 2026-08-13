@@ -110,26 +110,32 @@ export function FormularioIngreso() {
           </Link>
         </p>
 
-        <div className="mt-5 rounded-md border border-bordeSuave bg-vidrio p-4">
-          <p className="text-[12.5px] font-semibold text-secundario">
-            Cuentas demo (contraseña: demo1234)
-          </p>
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {DEMOS.map((d) => (
-              <button
-                key={d.email}
-                type="button"
-                onClick={() => {
-                  setEmail(d.email);
-                  setContrasena("demo1234");
-                }}
-                className="rounded-sm border border-borde bg-fondo px-2.5 py-1.5 text-xs font-medium text-secundario transition-colors hover:border-marca hover:text-marca"
-              >
-                {d.etiqueta}
-              </button>
-            ))}
+        {/* Los accesos rápidos de prueba existen SOLO en desarrollo. En una web
+            publicada serían una puerta abierta: la contraseña está escrita al
+            lado del botón y en el README. Next.js reemplaza esta condición al
+            compilar, así que en producción el bloque ni siquiera se incluye. */}
+        {process.env.NODE_ENV !== "production" && (
+          <div className="mt-5 rounded-md border border-bordeSuave bg-vidrio p-4">
+            <p className="text-[12.5px] font-semibold text-secundario">
+              Cuentas demo (contraseña: demo1234)
+            </p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {DEMOS.map((d) => (
+                <button
+                  key={d.email}
+                  type="button"
+                  onClick={() => {
+                    setEmail(d.email);
+                    setContrasena("demo1234");
+                  }}
+                  className="rounded-sm border border-borde bg-fondo px-2.5 py-1.5 text-xs font-medium text-secundario transition-colors hover:border-marca hover:text-marca"
+                >
+                  {d.etiqueta}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </main>
   );
