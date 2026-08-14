@@ -16,10 +16,20 @@ interface FotocopiadoraPublica {
   tieneDominioDocente: boolean;
 }
 
-export function FormularioRegistro() {
+// Se puede llegar de dos formas:
+//   • /registro           -> hay que escribir el código de la fotocopiadora
+//   • /registro/<codigo>  -> ya viene resuelta y no se pregunta nada de eso
+// La segunda es el link que cada fotocopiadora le pasa a sus alumnos.
+export function FormularioRegistro({
+  fijada,
+}: {
+  fijada?: FotocopiadoraPublica;
+}) {
   const router = useRouter();
-  const [fotocopiadora, setFotocopiadora] = useState("");
-  const [encontrada, setEncontrada] = useState<FotocopiadoraPublica | null>(null);
+  const [fotocopiadora, setFotocopiadora] = useState(fijada?.slug ?? "");
+  const [encontrada, setEncontrada] = useState<FotocopiadoraPublica | null>(
+    fijada ?? null
+  );
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [contrasena, setContrasena] = useState("");
@@ -30,6 +40,7 @@ export function FormularioRegistro() {
 
   // Busca la fotocopiadora por su código para confirmar dónde te registrás.
   useEffect(() => {
+    if (fijada) return; // ya la resolvió el servidor
     const slug = fotocopiadora.trim();
     if (!slug) {
       setEncontrada(null);
@@ -43,7 +54,7 @@ export function FormularioRegistro() {
         .catch(() => setEncontrada(null));
     }, 350);
     return () => clearTimeout(t);
-  }, [fotocopiadora]);
+  }, [fotocopiadora, fijada]);
 
   async function registrarse(e: React.FormEvent) {
     e.preventDefault();
@@ -83,11 +94,20 @@ export function FormularioRegistro() {
           <h1 className="display text-[25px] text-texto">
             Creá tu cuenta
           </h1>
-          <p className="mt-1 text-sm text-secundario">
-            Pedile a tu fotocopiadora su código para registrarte.
-          </p>
+          {fijada ? (
+            <p className="mt-1 text-sm text-secundario">
+              Te registrás en{" "}
+              <span className="font-semibold text-marca">{fijada.nombre}</span>{" "}
+              como estudiante.
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-secundario">
+              Pedile a tu fotocopiadora su código para registrarte.
+            </p>
+          )}
 
           <form onSubmit={registrarse} className="mt-6 space-y-4">
+            {!fijada && (
             <div>
               <label className="etiqueta" htmlFor="foto">
                 Código de la fotocopiadora
@@ -112,6 +132,7 @@ export function FormularioRegistro() {
                 </p>
               )}
             </div>
+            )}
 
             <div>
               <label className="etiqueta" htmlFor="nombre">

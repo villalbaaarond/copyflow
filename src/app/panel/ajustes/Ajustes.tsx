@@ -13,7 +13,7 @@ import type {
   PinProfesor,
   Fotocopiadora,
 } from "@/lib/tipos";
-import { Trash2, Plus, Loader2 } from "lucide-react";
+import { Trash2, Plus, Loader2, Link2, Check } from "lucide-react";
 
 type Pestania = "academico" | "usuarios" | "docentes" | "config" | "suscripcion" | "auditoria";
 
@@ -345,13 +345,9 @@ function SeccionDocentes() {
             Guardar
           </button>
         </div>
-        {foto && (
-          <p className="mt-2 text-xs text-terciario">
-            Código de tu fotocopiadora para que se registren:{" "}
-            <span className="mono font-semibold text-marca">{foto.slug}</span>
-          </p>
-        )}
       </div>
+
+      {foto && <LinkDeRegistro slug={foto.slug} />}
 
       <div className="tarjeta p-5">
         <p className="text-[13px] font-semibold text-secundario">
@@ -714,6 +710,67 @@ function SeccionSuscripcion() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Link propio de la fotocopiadora para que sus alumnos se registren. Con este
+// link no hay que dictarle ningún código a nadie: la fotocopiadora ya viene
+// resuelta en la dirección y el alumno solo pone nombre, email y contraseña.
+function LinkDeRegistro({ slug }: { slug: string }) {
+  const [copiado, setCopiado] = useState(false);
+  const [base, setBase] = useState("");
+
+  // El dominio se lee del navegador: así el link es el correcto tanto en la
+  // computadora (localhost) como en la web publicada, sin configurar nada.
+  useEffect(() => {
+    setBase(window.location.origin);
+  }, []);
+
+  const url = `${base}/registro/${slug}`;
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      // Si el navegador no deja copiar, el link igual está a la vista.
+    }
+  }
+
+  return (
+    <div className="tarjeta p-5">
+      <p className="flex items-center gap-2 text-[13px] font-semibold text-secundario">
+        <Link2 size={15} strokeWidth={2} className="text-marca" />
+        Link para que se registren tus alumnos
+      </p>
+      <p className="mt-1 text-xs text-terciario">
+        Pasalo por WhatsApp o pegalo en el mostrador. Quien lo abra solo carga
+        nombre, email y contraseña: no tiene que saber ningún código.
+      </p>
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        <input
+          className="campo mono min-w-0 flex-1 text-xs"
+          value={url}
+          readOnly
+          onFocus={(e) => e.target.select()}
+        />
+        <button className="btn-secundario shrink-0" onClick={copiar}>
+          {copiado ? (
+            <>
+              <Check size={15} strokeWidth={2.4} className="text-marca" />
+              Copiado
+            </>
+          ) : (
+            "Copiar"
+          )}
+        </button>
+      </div>
+      <p className="mt-2 text-xs text-terciario">
+        Los profesores tienen que entrar por el mismo link, marcar
+        &ldquo;Soy profesor/a&rdquo; y poner el PIN que les generes acá abajo.
+      </p>
     </div>
   );
 }
