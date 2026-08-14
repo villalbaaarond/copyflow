@@ -10,7 +10,8 @@
     "seed": "tsx prisma/seed.ts",
     "dueno": "tsx scripts/crear-dueno.ts",
     "revisar": "tsx scripts/revisar-dueno.ts",
-    "variables": "tsx scripts/variables.ts"
+    "variables": "tsx scripts/variables.ts",
+    "copiar": "tsx scripts/copiar.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
