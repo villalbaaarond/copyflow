@@ -28,7 +28,14 @@ export async function GET() {
           activa: true,
           creadoEn: true,
           suscripcion: {
-            select: { estado: true, precioMensual: true, vigenteHasta: true },
+            select: {
+              estado: true,
+              precioAlta: true,
+              precioMensual: true,
+              vigenteHasta: true,
+              // Con esto se sabe si todavía corresponde cobrar el alta.
+              _count: { select: { pagos: true } },
+            },
           },
           _count: {
             select: { usuarios: true, pedidos: true, cartillas: true },
@@ -63,7 +70,9 @@ export async function GET() {
         suscripcion: f.suscripcion
           ? {
               estado: f.suscripcion.estado,
+              precioAlta: f.suscripcion.precioAlta,
               precioMensual: f.suscripcion.precioMensual,
+              esPrimerPago: f.suscripcion._count.pagos === 0,
               vigenteHasta: f.suscripcion.vigenteHasta,
               vigente: acceso?.vigente ?? false,
               enGracia: acceso?.enGracia ?? false,

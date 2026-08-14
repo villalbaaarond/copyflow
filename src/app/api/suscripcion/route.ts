@@ -12,6 +12,8 @@ import {
   obtenerSuscripcion,
   evaluarAcceso,
   registrarPago,
+  calcularMonto,
+  aliasPlataforma,
 } from "@/lib/suscripcion";
 
 // GET: el dueño ve el estado de SU suscripción y el historial de pagos.
@@ -26,15 +28,23 @@ export async function GET() {
       take: 24,
     });
 
+    const esPrimerPago = pagos.length === 0;
+
     return NextResponse.json({
       suscripcion: {
         estado: sub.estado,
+        precioAlta: sub.precioAlta,
         precioMensual: sub.precioMensual,
+        // Lo que le toca pagar AHORA por un mes: alta si nunca pagó.
+        precioProximoPago: calcularMonto(sub, 1, esPrimerPago),
+        esPrimerPago,
         vigenteHasta: sub.vigenteHasta,
         diasRestantes: acceso.diasRestantes,
         vigente: acceso.vigente,
         enGracia: acceso.enGracia,
       },
+      // Dónde transferir. Si no está configurado, la pantalla no lo muestra.
+      alias: aliasPlataforma(),
       pagos,
     });
   } catch (error) {

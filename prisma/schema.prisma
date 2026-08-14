@@ -219,8 +219,12 @@ model PinProfesor {
 model Suscripcion {
   id             Int               @id @default(autoincrement())
   estado         EstadoSuscripcion @default(PRUEBA)
-  // Precio mensual en pesos, congelado al contratar.
-  precioMensual  Int               @default(15000)
+  // Precio del PRIMER pago, en pesos: incluye la puesta en marcha (cargar
+  // cursos, materias, usuarios y acompañar el arranque). Se cobra una sola vez.
+  precioAlta     Int               @default(60000)
+  // Precio de cada mes siguiente, en pesos. Los dos quedan congelados al
+  // contratar: subir la tarifa no le cambia el precio a quien ya es cliente.
+  precioMensual  Int               @default(40000)
   // Fin del periodo pago en curso: la fecha que define si esta vigente.
   vigenteHasta   DateTime
   creadoEn       DateTime          @default(now())

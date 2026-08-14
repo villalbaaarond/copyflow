@@ -541,6 +541,9 @@ function SeccionAuditoria() {
 }
 
 interface DatosSuscripcion {
+  precioAlta: number;
+  precioProximoPago: number;
+  esPrimerPago: boolean;
   estado: "PRUEBA" | "ACTIVA" | "VENCIDA" | "CANCELADA";
   precioMensual: number;
   vigenteHasta: string;
@@ -560,6 +563,7 @@ interface PagoSub {
 // Suscripción de la fotocopiadora a la plataforma: estado, vencimiento y pagos.
 function SeccionSuscripcion() {
   const [sub, setSub] = useState<DatosSuscripcion | null>(null);
+  const [alias, setAlias] = useState<string | null>(null);
   const [pagos, setPagos] = useState<PagoSub[]>([]);
   const [meses, setMeses] = useState("1");
   const [referencia, setReferencia] = useState("");
@@ -568,10 +572,13 @@ function SeccionSuscripcion() {
   const [enviando, setEnviando] = useState(false);
 
   const cargar = useCallback(async () => {
-    const d = await obtener<{ suscripcion: DatosSuscripcion; pagos: PagoSub[] }>(
-      "/api/suscripcion"
-    );
+    const d = await obtener<{
+      suscripcion: DatosSuscripcion;
+      alias: string | null;
+      pagos: PagoSub[];
+    }>("/api/suscripcion");
     setSub(d.suscripcion);
+    setAlias(d.alias);
     setPagos(d.pagos);
   }, []);
 
@@ -634,14 +641,39 @@ function SeccionSuscripcion() {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[13px] font-semibold text-secundario">Plan mensual</p>
-            <p className="mono mt-1 text-[22px] font-bold text-texto">
-              {formatearPrecio(sub.precioMensual)}
+            <p className="text-[13px] font-semibold text-secundario">
+              {sub.esPrimerPago ? "Primer pago" : "Plan mensual"}
             </p>
-            <p className="text-xs text-terciario">por mes</p>
+            <p className="mono mt-1 text-[22px] font-bold text-texto">
+              {formatearPrecio(sub.precioProximoPago)}
+            </p>
+            {sub.esPrimerPago ? (
+              <p className="text-xs text-terciario">
+                incluye la puesta en marcha
+                <br />
+                después {formatearPrecio(sub.precioMensual)} por mes
+              </p>
+            ) : (
+              <p className="text-xs text-terciario">por mes</p>
+            )}
           </div>
         </div>
       </div>
+
+      {alias && (
+        <div className="tarjeta p-5">
+          <p className="text-[13px] font-semibold text-secundario">
+            Dónde pagar tu suscripción
+          </p>
+          <p className="mt-1 text-xs text-terciario">
+            Transferí {formatearPrecio(sub.precioProximoPago)} a este alias y
+            avisale a CopyFlow. Apenas se confirma, tu período se extiende.
+          </p>
+          <p className="mono mt-2.5 select-all rounded-sm border border-borde bg-fondo px-3.5 py-2.5 text-[15px] font-semibold text-marca">
+            {alias}
+          </p>
+        </div>
+      )}
 
       <div className="tarjeta p-5">
         <p className="text-[13px] font-semibold text-secundario">

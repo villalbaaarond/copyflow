@@ -20,7 +20,9 @@ import {
 
 interface Suscripcion {
   estado: string;
+  precioAlta: number;
   precioMensual: number;
+  esPrimerPago: boolean;
   vigenteHasta: string;
   vigente: boolean;
   enGracia: boolean;
@@ -456,8 +458,18 @@ function ModalPago({
           <p className="text-xs text-terciario">
             Total:{" "}
             <span className="mono text-marca">
-              {formatearPrecio(tenant.suscripcion.precioMensual * meses)}
+              {formatearPrecio(
+                tenant.suscripcion.esPrimerPago
+                  ? tenant.suscripcion.precioAlta +
+                      tenant.suscripcion.precioMensual * (meses - 1)
+                  : tenant.suscripcion.precioMensual * meses
+              )}
             </span>
+            {tenant.suscripcion.esPrimerPago && (
+              <span className="ml-1">
+                (primer pago: incluye la puesta en marcha)
+              </span>
+            )}
           </p>
         )}
         {error && <Aviso tipo="error">{error}</Aviso>}

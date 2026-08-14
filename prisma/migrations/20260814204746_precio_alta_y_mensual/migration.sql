@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Suscripcion" ADD COLUMN     "precioAlta" INTEGER NOT NULL DEFAULT 60000,
+ALTER COLUMN "precioMensual" SET DEFAULT 40000;

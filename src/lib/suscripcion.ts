@@ -1,10 +1,32 @@
 import type { EstadoSuscripcion } from "@prisma/client";
 import { prisma } from "./prisma";
 
-// Precio mensual por defecto de la plataforma (pesos). El de cada fotocopiadora
-// se congela en su suscripción al contratar, para que un cambio de tarifa no
-// altere a los clientes existentes.
-export const PRECIO_MENSUAL = 15000;
+// Tarifa de la plataforma, en pesos. Los dos valores se COPIAN a la
+// suscripción al crearla y quedan congelados ahí: si mañana subís la tarifa,
+// quien ya es cliente sigue pagando lo que acordó.
+//
+// El primer pago es más caro porque incluye la puesta en marcha: cargar
+// cursos, materias y usuarios, y acompañar el arranque. Se cobra una sola vez.
+export const PRECIO_ALTA = 60000;
+export const PRECIO_MENSUAL = 40000;
+
+// Alias donde las fotocopiadoras transfieren la suscripción. Vive en el
+// entorno y no en el código, porque el repositorio es público y un alias
+// bancario no tiene por qué estar ahí.
+export function aliasPlataforma(): string | null {
+  return process.env.ALIAS_PLATAFORMA?.trim() || null;
+}
+
+// Cuánto tiene que pagar una suscripción por N meses. El primer pago lleva el
+// precio de alta; de ahí en más, todos los meses valen igual.
+export function calcularMonto(
+  sub: { precioAlta: number; precioMensual: number },
+  meses: number,
+  esPrimerPago: boolean
+): number {
+  if (!esPrimerPago) return sub.precioMensual * meses;
+  return sub.precioAlta + sub.precioMensual * (meses - 1);
+}
 
 // Días de gracia después del vencimiento antes de bloquear el acceso. Evita
 // cortarle el servicio a una fotocopiadora que paga con un día de demora.
@@ -59,6 +81,7 @@ export async function obtenerSuscripcion(fotocopiadoraId: number) {
     data: {
       fotocopiadoraId,
       estado: "PRUEBA",
+      precioAlta: PRECIO_ALTA,
       precioMensual: PRECIO_MENSUAL,
       vigenteHasta,
     },
@@ -79,6 +102,14 @@ export async function registrarPago(
   periodoHasta.setMonth(periodoHasta.getMonth() + meses);
 
   return prisma.$transaction(async (tx) => {
+    // ¿Es el primer pago de esta fotocopiadora? De eso depende que se cobre
+    // el alta. Se cuenta adentro de la transacción para que dos registros
+    // simultáneos no puedan cobrar el alta dos veces.
+    const pagosPrevios = await tx.pagoSuscripcion.count({
+      where: { suscripcionId: sub.id },
+    });
+    const monto = calcularMonto(sub, meses, pagosPrevios === 0);
+
     const actualizada = await tx.suscripcion.update({
       where: { id: sub.id },
       data: { estado: "ACTIVA", vigenteHasta: periodoHasta },
@@ -86,7 +117,7 @@ export async function registrarPago(
     await tx.pagoSuscripcion.create({
       data: {
         suscripcionId: sub.id,
-        monto: sub.precioMensual * meses,
+        monto,
         meses,
         referencia,
         periodoHasta,
