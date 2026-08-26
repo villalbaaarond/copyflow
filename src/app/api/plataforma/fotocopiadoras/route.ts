@@ -4,7 +4,7 @@ import { responderError, verificarOrigin, ErrorHttp } from "@/lib/auth";
 import { esquemaNuevaFotocopiadora } from "@/lib/validaciones";
 import { hashearContrasena } from "@/lib/password";
 import { exigirDueno, auditarPlataforma } from "@/lib/plataforma";
-import { evaluarAcceso, PRECIO_MENSUAL } from "@/lib/suscripcion";
+import { evaluarAcceso, PRECIO_ALTA, PRECIO_MENSUAL } from "@/lib/suscripcion";
 import { obtenerIp } from "@/lib/rateLimit";
 
 // GET: todas las fotocopiadoras de la plataforma.
@@ -140,6 +140,9 @@ export async function POST(req: Request) {
           suscripcion: {
             create: {
               estado: "PRUEBA",
+              // Los dos precios quedan congelados acá, con la tarifa del día
+              // en que se dio de alta este cliente.
+              precioAlta: PRECIO_ALTA,
               precioMensual: PRECIO_MENSUAL,
               vigenteHasta,
             },

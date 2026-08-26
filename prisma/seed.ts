@@ -282,7 +282,11 @@ async function main() {
       fotocopiadoraId: norte.id,
       estado: "PRUEBA",
       precioMensual: 15000,
-      vigenteHasta: enDias(3),
+      // Prueba corta a propósito, para ver el aviso de "vence pronto" en el
+      // panel. No tan corta que la base sembrada deje de funcionar sola a los
+      // pocos días: eso hace creer que algo se rompió cuando en realidad es el
+      // bloqueo por vencimiento haciendo su trabajo.
+      vigenteHasta: enDias(25),
     },
   });
 

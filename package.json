@@ -12,7 +12,8 @@
     "revisar": "tsx scripts/revisar-dueno.ts",
     "variables": "tsx scripts/variables.ts",
     "copiar": "tsx scripts/copiar.ts",
-    "limpiar-demo": "tsx scripts/limpiar-demo.ts"
+    "limpiar-demo": "tsx scripts/limpiar-demo.ts",
+    "demo": "tsx scripts/demo.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
