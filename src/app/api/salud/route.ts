@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { hashearContrasena, verificarContrasena } from "@/lib/password";
 
 // Chequeo de salud público: dice si la aplicación publicada llega a su base de
 // datos. Existe porque, cuando algo falla en producción, la web contesta a
@@ -17,11 +18,51 @@ export async function GET() {
 
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return NextResponse.json({
-      base: "ok",
-      mensaje: "La web llega a la base de datos.",
-      demoraMs: Date.now() - inicio,
-    });
+
+    // La base contesta. Faltan dos cosas que también tumban un login y que
+    // desde afuera se ven igual que un fallo de base:
+    //
+    //  1. Argon2 es un módulo nativo. Si el servidor no lo puede cargar, no
+    //     entra NADIE, ni al panel ni a una fotocopiadora.
+    //  2. Que las migraciones estén al día. Una tabla o una columna que falta
+    //     rompe la consulta aunque la conexión esté perfecta.
+    //
+    // Ninguna de las dos respuestas dice qué tablas son, para no delatar que
+    // existe el panel de plataforma.
+    let hash = "ok";
+    try {
+      const prueba = await hashearContrasena("prueba-de-salud");
+      if (!(await verificarContrasena(prueba, "prueba-de-salud"))) hash = "error";
+    } catch {
+      hash = "error";
+    }
+
+    let migraciones = "ok";
+    try {
+      await Promise.all([
+        prisma.usuario.count(),
+        prisma.suscripcion.count(),
+        prisma.duenoPlataforma.count(),
+      ]);
+    } catch {
+      migraciones = "faltan";
+    }
+
+    const todoBien = hash === "ok" && migraciones === "ok";
+    return NextResponse.json(
+      {
+        base: "ok",
+        hash,
+        migraciones,
+        mensaje: todoBien
+          ? "La web llega a la base y todo lo demás responde."
+          : hash === "error"
+            ? "La base anda, pero el servidor no puede cifrar contraseñas. Con esto no entra nadie."
+            : "La base anda, pero le faltan migraciones. Corré: npx prisma migrate deploy",
+        demoraMs: Date.now() - inicio,
+      },
+      { status: todoBien ? 200 : 503 }
+    );
   } catch (e) {
     const codigo =
       (e as { errorCode?: string }).errorCode ??
