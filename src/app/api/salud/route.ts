@@ -98,13 +98,34 @@ export async function GET() {
       causa = "falta-migrar";
       mensaje =
         "La base responde pero le faltan las tablas. Falta correr: npx prisma migrate deploy";
+    } else if (
+      codigo === "P2024" ||
+      codigo === "P1017" ||
+      texto.includes("too many connections") ||
+      texto.includes("Timed out fetching a new connection") ||
+      texto.includes("server has closed the connection")
+    ) {
+      // Neon (plan gratis) limita las conexiones y apaga la base cuando no se
+      // usa. Con un servidor sin estado como Vercel, eso se ve como fallos
+      // sueltos: anda, después no, después vuelve a andar.
+      causa = "conexiones-agotadas";
+      mensaje =
+        "La base rechaza conexiones nuevas o estaba dormida. Suele arreglarse solo al reintentar; si pasa seguido, agregá ?pgbouncer=true&connection_limit=1 a DATABASE_URL.";
     } else if (!process.env.DATABASE_URL) {
       causa = "sin-variable";
       mensaje = "Falta la variable DATABASE_URL en el servidor.";
     }
 
     return NextResponse.json(
-      { base: "error", causa, mensaje, demoraMs: Date.now() - inicio },
+      {
+        base: "error",
+        causa,
+        // Solo el código de Prisma, nunca el mensaje: el mensaje incluye el
+        // servidor y el usuario de la cadena de conexión.
+        codigo,
+        mensaje,
+        demoraMs: Date.now() - inicio,
+      },
       { status: 503 }
     );
   }

@@ -7,14 +7,28 @@ import { PrismaClient } from "@prisma/client";
 // exists") y la app se pone lenta. La solución documentada es avisarle a Prisma
 // que hay un pooler adelante con ?pgbouncer=true. Lo agregamos acá para que
 // funcione aunque la cadena de conexión venga sin ese parámetro.
-function normalizarUrl(url: string | undefined): string | undefined {
+export function normalizarUrl(url: string | undefined): string | undefined {
   if (!url) return url;
   try {
     const u = new URL(url);
     const esPooler =
       u.hostname.includes("-pooler.") || u.hostname.includes("pgbouncer");
-    if (esPooler && !u.searchParams.has("pgbouncer")) {
+    if (!esPooler) return u.toString();
+
+    if (!u.searchParams.has("pgbouncer")) {
       u.searchParams.set("pgbouncer", "true");
+    }
+    // Una conexión por instancia. En un servidor sin estado cada petición
+    // levanta su propia copia de la aplicación: si cada una abre varias
+    // conexiones, se agota el cupo de la base y aparecen fallos sueltos
+    // (anda, no anda, vuelve a andar) que parecen no tener explicación.
+    if (!u.searchParams.has("connection_limit")) {
+      u.searchParams.set("connection_limit", "1");
+    }
+    // Si la base estaba dormida, tarda unos segundos en despertar. Sin esto
+    // Prisma se rinde antes de tiempo.
+    if (!u.searchParams.has("connect_timeout")) {
+      u.searchParams.set("connect_timeout", "15");
     }
     return u.toString();
   } catch {

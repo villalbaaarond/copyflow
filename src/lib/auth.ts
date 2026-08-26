@@ -76,6 +76,28 @@ export function responderError(error: unknown): NextResponse {
     return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
   }
   console.error("Error interno:", error);
+
+  // Un fallo de conexión con la base no es "un error cualquiera": es temporal
+  // y se resuelve reintentando. Decirlo ahorra pensar que la aplicación está
+  // rota. No se filtra ningún dato de la conexión, solo que fue de red.
+  const texto = error instanceof Error ? error.message : String(error);
+  const esConexion =
+    texto.includes("Can't reach database server") ||
+    texto.includes("server has closed the connection") ||
+    texto.includes("Timed out fetching a new connection") ||
+    texto.includes("too many connections") ||
+    texto.includes("ECONNREFUSED");
+
+  if (esConexion) {
+    return NextResponse.json(
+      {
+        error:
+          "La base de datos no está respondiendo en este momento. Esperá unos segundos y probá de nuevo.",
+      },
+      { status: 503 }
+    );
+  }
+
   return NextResponse.json(
     { error: "Ocurrió un error. Probá de nuevo." },
     { status: 500 }
