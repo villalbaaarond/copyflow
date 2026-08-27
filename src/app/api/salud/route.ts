@@ -70,6 +70,13 @@ export async function GET() {
       null;
     const texto = e instanceof Error ? e.message : String(e);
 
+    // El nombre de la clase del error distingue dos mundos completamente
+    // distintos y no filtra nada: PrismaClientInitializationError significa que
+    // el cliente ni siquiera pudo arrancar (cadena malformada, variable
+    // ausente), mientras que un error de consulta significa que la conexión
+    // estaba bien.
+    const tipo = e instanceof Error ? e.name : "desconocido";
+
     let causa = "desconocida";
     let mensaje = "La base de datos no responde.";
 
@@ -86,7 +93,18 @@ export async function GET() {
       texto.includes("Timed out") ||
       texto.includes("timeout");
 
-    if (sinConexion) {
+    // Una cadena mal armada no da código ni habla de red: Prisma se queja de
+    // que no empieza con postgresql://. Es lo que pasa cuando se pega cortada.
+    if (
+      texto.includes("must start with the protocol") ||
+      texto.includes("Environment variable not found") ||
+      texto.includes("Error validating datasource") ||
+      texto.includes("Invalid `datasource")
+    ) {
+      causa = "cadena-invalida";
+      mensaje =
+        "DATABASE_URL está mal escrita o incompleta. Casi siempre es que se pegó cortada: tiene que ser una sola línea que empieza con postgresql:// y termina en require.";
+    } else if (sinConexion) {
       causa = "sin-conexion";
       mensaje =
         "No se llega al servidor de la base. Revisá que DATABASE_URL esté completa (suele quedar cortada al copiarla).";
@@ -120,9 +138,10 @@ export async function GET() {
       {
         base: "error",
         causa,
-        // Solo el código de Prisma, nunca el mensaje: el mensaje incluye el
+        // Solo el código y el tipo, nunca el mensaje: el mensaje incluye el
         // servidor y el usuario de la cadena de conexión.
         codigo,
+        tipo,
         mensaje,
         demoraMs: Date.now() - inicio,
       },
